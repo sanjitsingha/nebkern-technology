@@ -3,7 +3,6 @@ import { Hero } from "@/components/site/hero";
 import { Apps } from "@/components/site/apps";
 import { About } from "@/components/site/about";
 import { Statement } from "@/components/site/statement";
-import { Approach } from "@/components/site/approach";
 import { Cta } from "@/components/site/cta";
 import { Footer } from "@/components/site/footer";
 
@@ -30,7 +29,6 @@ export default function Home() {
         <Apps />
         <About />
         <Statement />
-        <Approach />
         <Cta />
       </main>
 
