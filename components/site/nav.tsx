@@ -28,7 +28,7 @@ const PRODUCT_ITEMS: MenuItem[] = PRODUCTS.filter((p) => p.isApp).map((p) => ({
 
 const RESOURCE_ITEMS: MenuItem[] = [
   { label: "Docs", href: LINKS.docs },
-  { label: "Blog", href: LINKS.blog },
+  { label: "Blog", href: "/blog" },
   { label: "Newsletter", href: LINKS.newsletter },
 ];
 
