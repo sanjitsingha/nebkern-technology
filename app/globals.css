@@ -1,26 +1,160 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+/* ============================================================
+   nebkern — the parent identity.
+
+   Deliberately NOT Instant's identity. Instant is forest green
+   (#0b6623) and sells to a shop owner; this site sells the company
+   behind it to anyone evaluating whether Nebkern is a real, durable
+   vendor. So the parent palette is neutral ink on white with a single
+   structural accent, and each product keeps its own colour — which is
+   what lets a grid of six products read as six products rather than
+   six shades of the same one.
+
+   Light only, on purpose. `color-scheme: light` is declared so the
+   browser keeps scrollbars, form controls and autofill light even for
+   a visitor whose OS is set to dark — without it those chrome
+   elements render dark against a white page.
+
+   Product hues arrive per-card as `--hue`, set inline from
+   `lib/products.ts`. Nothing here hardcodes green.
+   ============================================================ */
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--paper);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-hover: var(--accent-hover);
+
+  --color-warning: var(--warning);
+
+  --color-panel: var(--panel);
+  --color-panel-fg: var(--panel-fg);
+  --color-panel-line: var(--panel-line);
+  --color-panel-muted: var(--panel-muted);
+
+  --font-sans: var(--font-sans-family), ui-sans-serif, system-ui, sans-serif;
+  --font-mono:
+    var(--font-mono-family), ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+:root {
+  color-scheme: light;
+
+  /* Surfaces run warm-neutral rather than pure white — a full-white
+     page under a near-black ink reads as a document, not a product.
+     Cards sit at true white so they lift off it. */
+  --paper: oklch(0.986 0.002 265);
+  --surface: oklch(1 0 0);
+  --surface-2: oklch(0.972 0.003 265);
+
+  --ink: oklch(0.185 0.021 265);
+  --ink-soft: oklch(0.305 0.019 265);
+  --muted: oklch(0.527 0.016 265);
+
+  --line: oklch(0.902 0.006 265);
+  --line-soft: oklch(0.945 0.004 265);
+
+  /* THE primary colour. One hue, indigo, and every primary action on
+     the site is it: the nav's call to action, the hero's, the closing
+     panel's, the section labels, the numbered markers, the logo mark
+     and the focus ring. Everything else is ink, paper or a line.
+
+     Indigo specifically because it sits far enough from Instant's
+     forest green that a product card's own colour still wins its own
+     card — the parent brand and the product brand never compete.
+
+     `--accent-hover` is the same hue a step darker, not a different
+     colour. To rebrand the site, change these three lines. */
+  --accent: oklch(0.505 0.196 267);
+  --accent-hover: oklch(0.442 0.186 267);
+  --accent-fg: oklch(0.99 0 0);
+
+  /* "Coming soon" and anything else not-yet-shipped. A literal yellow
+     measures 2.7:1 on this page's white and is unreadable; this is the
+     brightest gold that still clears AA for small text at 4.9:1. */
+  --warning: oklch(0.55 0.125 82);
+
+  /* The two inverted bands — the closing CTA and the footer. On a
+     white site these are the only dark surfaces, which is what makes
+     them read as punctuation rather than as a second theme. */
+  --panel: oklch(0.185 0.021 265);
+  --panel-fg: oklch(0.972 0.003 265);
+  --panel-line: oklch(0.302 0.018 265);
+  --panel-muted: oklch(0.702 0.014 265);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Headlines carry negative tracking at display sizes — past ~32px the
+   words otherwise sit too loose to read as one phrase. Manrope is
+   already tighter than Inter was, so this is a lighter touch than the
+   -0.032em the same rule needed before the typeface changed. */
+.display {
+  letter-spacing: -0.022em;
+  line-height: 1.04;
+}
+
+/* The hero backdrop: a faint engineering grid that fades out before it
+   reaches the text. Pure CSS — no image request. */
+.grid-field {
+  background-image:
+    linear-gradient(to right, var(--line-soft) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-soft) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: radial-gradient(
+    ellipse 80% 60% at 50% 0%,
+    #000 0%,
+    transparent 75%
+  );
+}
+
+/* Scroll-revealed statement.
+   
+   The whole effect is one custom property. JS writes `--p` (0→1, how
+   far the paragraph has travelled through the viewport) and each word
+   works out its own opacity from its index — so scrolling updates a
+   single value on one element rather than re-rendering thirty spans.
+
+   `--p: 1` is the declared default, which is what makes this safe: if
+   the script never runs, every word is already at full opacity and the
+   paragraph simply reads as normal text. The multiplier sets how many
+   words are mid-fade at once; higher is snappier, lower is softer. It
+   sets softness, NOT pace — how long the whole sentence takes is the
+   scroll range in statement.tsx. */
+.reveal {
+  --p: 1;
+}
+
+.reveal-word {
+  opacity: clamp(0.16, calc((var(--p) * var(--n) - var(--i)) * 0.85), 1);
+}
+
+/* Someone who has asked for less motion gets the sentence, not the
+   choreography. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-word {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
