@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
+import { AppsModal } from "./apps-modal";
 import { Logo } from "./logo";
 import { LINKS } from "@/lib/site";
 import { PRODUCTS, STATUS_LABEL } from "@/lib/products";
@@ -128,6 +129,7 @@ function MenuRow({
 
 export function Nav() {
   const [open, setOpen] = useState(false);
+  const [appsOpen, setAppsOpen] = useState(false);
   /** Label of the dropdown that is open, or null. One value rather than
    *  a flag each, so opening one closes the other for free. */
   const [menu, setMenu] = useState<string | null>(null);
@@ -168,6 +170,11 @@ export function Nav() {
     // bar reads as a distinct plane above the page rather than blending
     // into it.
     <header className="sticky top-0 z-50 border-b border-line bg-surface">
+      {/* Rendered once, driven by both triggers. A native dialog lives
+          in the browser's top layer, so being nested inside this sticky
+          `z-50` header does not trap it underneath anything. */}
+      <AppsModal open={appsOpen} onClose={() => setAppsOpen(false)} />
+
       <nav
         aria-label="Main"
         className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8"
@@ -275,13 +282,14 @@ export function Nav() {
               two primary buttons on screen at once and neither won.
               Border and text both go indigo on hover, which is the same
               answer the dropdown rows give. */}
-          <a
-            href={LINKS.instantLogin}
+          <button
+            type="button"
+            onClick={() => setAppsOpen(true)}
             className="group inline-flex items-center gap-1.5 rounded-md border border-line px-4 py-2 text-[0.9375rem] font-medium text-ink transition-colors hover:border-accent hover:text-accent"
           >
             Access your apps
             <Arrow />
-          </a>
+          </button>
         </div>
 
         <button
@@ -349,13 +357,20 @@ export function Nav() {
             </ul>
 
             <div className="mt-5">
-              <a
-                href={LINKS.instantLogin}
+              {/* Closes the drawer on the way: leaving it open behind a
+                  modal stacks two overlays, and the drawer would still
+                  be sitting there when the dialog is dismissed. */}
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setAppsOpen(true);
+                }}
                 className="group inline-flex w-full items-center justify-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent hover:text-accent"
               >
                 Access your apps
                 <Arrow />
-              </a>
+              </button>
             </div>
           </div>
         </div>

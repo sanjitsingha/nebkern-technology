@@ -33,6 +33,16 @@ export interface Product {
    *  colour read as one product. */
   hue: string;
   href?: string;
+  /**
+   * Where an existing customer signs in, as opposed to `href`, which is
+   * the product's marketing site.
+   *
+   * The two are different destinations and only one of them is what the
+   * bar's "Access your apps" means. Absent on anything with no sign-in
+   * to reach yet, which is what the modal reads to decide whether a row
+   * is a link at all.
+   */
+  appHref?: string;
   /** The product's own lockup, where it has one. It replaces both the
    *  colour chip and the name, because it already carries both — a
    *  chip beside it would put two marks on one card. Remote width and
@@ -56,6 +66,7 @@ export const PRODUCTS: Product[] = [
     // Instant's own forest green, matched to its product UI.
     hue: "oklch(0.446 0.127 146)",
     href: "https://instant.nebkern.com",
+    appHref: "https://instant.nebkern.com/login",
     logo: {
       src: "https://media.instant.nebkern.com/assets/instant-full-logo-green.webp",
       width: 3514,
