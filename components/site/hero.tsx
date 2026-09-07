@@ -1,5 +1,3 @@
-import { LINKS } from "@/lib/site";
-
 export function Hero() {
   return (
     <section className="relative flex min-h-[calc(100svh-5rem-19rem)] items-center overflow-hidden">
@@ -51,10 +49,13 @@ export function Hero() {
             and walk away.
           </p>
 
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
+          {/* One action. The nav's "Talk to us" and the closing panel
+              both still carry contact, so the hero does not need to
+              offer a second door on the way in. */}
+          <div className="mt-9">
             <a
               href="#products"
-              className="inline-flex items-center justify-center gap-2 bg-accent px-5 py-3 text-[0.9375rem] font-medium text-accent-fg transition-colors hover:bg-accent-hover"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 text-[0.9375rem] font-medium text-accent-fg transition-colors hover:bg-accent-hover"
             >
               What we build
               <svg
@@ -69,12 +70,6 @@ export function Hero() {
               >
                 <path d="M3 8h10M9 4l4 4-4 4" />
               </svg>
-            </a>
-            <a
-              href={LINKS.contact}
-              className="inline-flex items-center justify-center border border-line bg-surface px-5 py-3 text-[0.9375rem] font-medium text-ink transition-colors hover:border-ink/25"
-            >
-              Talk to us
             </a>
           </div>
         </div>

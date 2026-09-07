@@ -13,7 +13,6 @@ type MenuItem = {
   /** Shown beside the label. Carries "Coming soon" for anything that has
    *  nowhere to link yet. */
   note?: string;
-  hue?: string;
 };
 
 /** Products come from the catalogue rather than a second hand-written
@@ -23,7 +22,6 @@ const PRODUCT_ITEMS: MenuItem[] = PRODUCTS.filter((p) => p.isApp).map((p) => ({
   label: p.name,
   href: p.href,
   note: p.href ? undefined : (p.statusLabel ?? STATUS_LABEL[p.status]),
-  hue: p.hue,
 }));
 
 const RESOURCE_ITEMS: MenuItem[] = [
@@ -54,6 +52,31 @@ function Chevron({ open }: { open: boolean }) {
   );
 }
 
+/** The arrow on the bar's action. Slides forward on hover, driven by
+ *  the `group` on the anchor rather than its own hover — the movement
+ *  should answer a pointer anywhere on the button, not only on the
+ *  12px of arrow.
+ *
+ *  Under `prefers-reduced-motion` the slide still happens but lands
+ *  instantly: globals.css clamps every transition to 0.01ms. That is
+ *  the rule working, not a broken animation. */
+function Arrow() {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.6"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5"
+      aria-hidden="true"
+    >
+      <path d="M3 8h10M9 4l4 4-4 4" />
+    </svg>
+  );
+}
+
 /** One item inside a dropdown. A product with no site yet is not a link
  *  — it renders as plain text with its status, because a menu entry
  *  that looks clickable and goes nowhere is worse than no entry. */
@@ -66,13 +89,6 @@ function MenuRow({
 }) {
   const body = (
     <>
-      {item.hue && (
-        <span
-          className="size-2 shrink-0 rounded-full"
-          style={{ background: item.hue, opacity: item.href ? 1 : 0.45 }}
-          aria-hidden="true"
-        />
-      )}
       <span>{item.label}</span>
       {item.note && (
         <span className="ml-auto pl-3 text-[0.75rem] font-medium text-warning">
@@ -82,8 +98,11 @@ function MenuRow({
     </>
   );
 
+  // 600, the same weight as the trigger that opens the menu. The rows
+  // are not trying to sit below their parent in a hierarchy; the panel
+  // already separates them from it, so they read as their own list.
   const shared =
-    "flex items-center gap-2.5 px-4 py-2.5 text-[0.9375rem] whitespace-nowrap";
+    "flex items-center gap-2.5 px-4 py-2.5 text-[0.9375rem] font-semibold whitespace-nowrap";
 
   return (
     <li>
@@ -91,7 +110,12 @@ function MenuRow({
         <a
           href={item.href}
           onClick={onNavigate}
-          className={`${shared} text-ink-soft transition-colors hover:bg-surface-2 hover:text-ink`}
+          // Colour is the whole hover state — no fill behind the row —
+          // so it has to be a colour that reads as a state change and not
+          // as a slightly darker grey. Indigo is what the triggers above
+          // already use on hover, so the menu answers the pointer the
+          // same way at both levels.
+          className={`${shared} text-ink-soft transition-colors hover:text-accent`}
         >
           {body}
         </a>
@@ -239,21 +263,24 @@ export function Nav() {
           </ul>
         </div>
 
-        <div className="hidden items-center gap-3 md:flex">
-          {/* Existing customers land here too, so the way back into the
-              product they already pay for stays one click away — but it
-              is the quiet link, not the call to action. */}
+        {/* One button, and it points at the login rather than at
+            contact. Existing customers are the people who need the bar
+            to do something for them on every page; a prospect already
+            has the hero's action and the closing panel. Sending
+            "Access your apps" anywhere but the sign-in page would make
+            the label a lie. */}
+        <div className="hidden items-center md:flex">
+          {/* Outlined, not filled. The hero already owns the one solid
+              indigo action above the fold; a second one in the bar put
+              two primary buttons on screen at once and neither won.
+              Border and text both go indigo on hover, which is the same
+              answer the dropdown rows give. */}
           <a
             href={LINKS.instantLogin}
-            className="text-[1.0625rem] font-semibold text-muted transition-colors hover:text-ink"
+            className="group inline-flex items-center gap-1.5 rounded-md border border-line px-4 py-2 text-[0.9375rem] font-medium text-ink transition-colors hover:border-accent hover:text-accent"
           >
-            Customer sign-in
-          </a>
-          <a
-            href={LINKS.contact}
-            className="bg-accent px-5 py-2.5 text-[1.0625rem] font-medium text-accent-fg transition-colors hover:bg-accent-hover"
-          >
-            Talk to us
+            Access your apps
+            <Arrow />
           </a>
         </div>
 
@@ -321,18 +348,13 @@ export function Nav() {
               </li>
             </ul>
 
-            <div className="mt-5 flex flex-col gap-2.5">
-              <a
-                href={LINKS.contact}
-                className="bg-accent px-4 py-2.5 text-center text-sm font-medium text-accent-fg transition-colors hover:bg-accent-hover"
-              >
-                Talk to us
-              </a>
+            <div className="mt-5">
               <a
                 href={LINKS.instantLogin}
-                className="border border-line px-4 py-2.5 text-center text-sm font-medium text-ink"
+                className="group inline-flex w-full items-center justify-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent hover:text-accent"
               >
-                Customer sign-in
+                Access your apps
+                <Arrow />
               </a>
             </div>
           </div>
