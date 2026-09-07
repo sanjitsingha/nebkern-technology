@@ -2,6 +2,8 @@ import { Nav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
 import { Apps } from "@/components/site/apps";
 import { About } from "@/components/site/about";
+import { Banner } from "@/components/site/banner";
+import { Questions } from "@/components/site/questions";
 import { Statement } from "@/components/site/statement";
 import { Cta } from "@/components/site/cta";
 import { Footer } from "@/components/site/footer";
@@ -28,6 +30,8 @@ export default function Home() {
         <Hero />
         <Apps />
         <About />
+        <Banner />
+        <Questions />
         <Statement />
         <Cta />
       </main>
