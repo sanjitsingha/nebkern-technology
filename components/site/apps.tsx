@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import Image from "next/image";
 
+import { CardSpotlight } from "@/components/ui/card-spotlight";
 import { PRODUCTS, STATUS_LABEL, type Product } from "@/lib/products";
 
 /** Lockup height inside an app row. Width comes from the file's real
@@ -138,26 +139,37 @@ export function Apps() {
               coloured half of it — and it is the same white the app
               list sits on, so the two halves stay one object. */}
             <div className="p-4 sm:p-5">
-              <div className="relative flex h-full flex-col justify-center overflow-hidden rounded-md bg-accent px-8 py-12 text-accent-fg sm:px-10 sm:py-14">
+              {/* The card keeps the component's own colours — black,
+                  a #262626 wash under the cursor, blue and violet dots.
+                  Nothing about the palette is passed in, so this stays
+                  whatever the library ships; only the box it sits in is
+                  ours. It is the one dark surface above the fold, which
+                  the closing panel and footer already establish as this
+                  site's punctuation. */}
+              <CardSpotlight className="flex h-full flex-col justify-center overflow-hidden px-8 py-12 sm:px-10 sm:py-14">
                 <div
                   className="pointer-events-none absolute -top-24 -left-16 h-72 w-72 rounded-full bg-white opacity-[0.13] blur-3xl"
                   aria-hidden="true"
                 />
 
-                <div className="relative">
+                {/* z-20 to clear the spotlight's z-0 wash. Document
+                    order would probably win this anyway; saying it
+                    outright means a later change to either layer
+                    cannot quietly reverse them. */}
+                <div className="relative z-20">
                   {/* The hero owns the h1; this panel makes the claim
                     that belongs to the catalogue, not the company. */}
-                  <h2 className="display text-[2.25rem] font-semibold sm:text-[2.75rem]">
+                  <h2 className="display text-[2.25rem] font-semibold text-white sm:text-[2.75rem]">
                     Two products. One platform.
                   </h2>
 
-                  <p className="mt-5 text-[1.0625rem] leading-relaxed text-accent-fg/80 text-pretty">
+                  <p className="mt-5 text-[1.0625rem] leading-relaxed text-neutral-300 text-pretty">
                     Both built, hosted and supported by the same team, on
                     infrastructure we run ourselves. Adopt one and the next is
                     already configured.
                   </p>
                 </div>
-              </div>
+              </CardSpotlight>
             </div>
 
             <div className="px-8 py-12 sm:px-10 sm:py-14">
