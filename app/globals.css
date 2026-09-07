@@ -158,3 +158,73 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   Admin editor content.
+
+   Tiptap renders real h2/p/ul/blockquote/pre inside its editable div,
+   and Tailwind's reset strips all of them back to plain text. Without
+   these the editor shows a heading and a paragraph as the same thing,
+   which makes the toolbar's state impossible to read.
+
+   Deliberately NOT a copy of the article page's typography. This is a
+   writing surface, not a preview — matching the published page here
+   would promise a WYSIWYG the block model does not actually deliver.
+   ============================================================ */
+.admin-prose {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--ink);
+}
+
+.admin-prose > * + * {
+  margin-top: 0.85rem;
+}
+
+.admin-prose h2 {
+  margin-top: 1.6rem;
+  font-size: 1.3rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+.admin-prose ul {
+  list-style: disc;
+  padding-left: 1.35rem;
+}
+
+.admin-prose li::marker {
+  color: var(--muted);
+}
+
+.admin-prose blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 1rem;
+  color: var(--ink-soft);
+}
+
+/* The second paragraph of a quote is its attribution — see
+   `lib/blog-blocks.ts`. Shown differently here so the convention is
+   visible while writing rather than a surprise on publish. */
+.admin-prose blockquote p + p {
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+
+.admin-prose pre {
+  overflow-x: auto;
+  border-radius: 0.375rem;
+  background: var(--panel);
+  padding: 0.9rem 1rem;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: var(--panel-fg);
+}
+
+/* ProseMirror gives the focused block this class; without a rule the
+   caret can land on an empty line with nothing to show for it. */
+.admin-prose .ProseMirror-gapcursor {
+  display: block;
+}
