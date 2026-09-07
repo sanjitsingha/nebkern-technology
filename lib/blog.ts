@@ -1,27 +1,22 @@
 /**
- * Blog content.
+ * Blog types, the date formatter, and the seed content.
  *
- * PLACEHOLDER DATA. Every post below is written to exercise the layout —
- * headings, lists, quotes, code, long and short titles — not to be
- * published. Replace it before the blog goes live.
+ * PLACEHOLDER DATA. Every post below was written to exercise the layout
+ * — headings, lists, quotes, code, long and short titles — not to be
+ * published. It is now only a SEED: `lib/blog-store.ts` copies it to
+ * `content/posts.json` the first time it runs, and everything after
+ * that reads and writes that file. Editing a post in /admin edits the
+ * JSON, not this array.
  *
- * This file is the seam where Supabase will plug in. The pages import
- * only `listPosts()` and `getPost()`, never the array, so swapping the
- * bodies of those two functions for queries is the whole migration:
- *
- *   export async function listPosts() {
- *     const { data } = await supabase.from("posts")
- *       .select("*").eq("published", true).order("date", { ascending: false });
- *     return data ?? [];
- *   }
- *
- * They are already `async` for that reason — the call sites await them
- * today, so nothing in the pages has to change when the data starts
- * coming over the wire.
+ * Nothing here may import `node:fs`, and that is the whole reason the
+ * store is a separate module. This file is reachable from
+ * `components/site/post-row.tsx`, which a Client Component imports, so
+ * a Node built-in in this graph breaks the browser bundle.
  *
  * `Block` mirrors what a rich-text column would hold. Keeping the body
  * structured rather than raw HTML means the renderer stays in charge of
- * styling, and nothing from the database is ever injected as markup.
+ * styling, and nothing from the database — or from the admin editor —
+ * is ever injected as markup.
  */
 
 export type Block =
@@ -40,11 +35,36 @@ export interface Post {
   date: string;
   readMinutes: number;
   tag: string;
+  /**
+   * Cover image, shown on the index and above the article.
+   *
+   * Optional while the photographs are outstanding — a post without one
+   * renders a hatched placeholder carrying its tag, so the layout is
+   * already the real layout. Expected shape once filled:
+   *
+   *   cover: {
+   *     src: "https://media.instant.nebkern.com/assets/blog/<name>.webp",
+   *     alt: "What the photograph shows",
+   *   }
+   *
+   * No width or height: it is rendered with `fill` inside a 16:9 box,
+   * so the crop is the layout's and the build never needs to fetch it.
+   */
+  cover?: { src: string; alt: string };
   author: { name: string; role: string };
   body: Block[];
 }
 
-const POSTS: Post[] = [
+/**
+ * What the index renders: a post without its body or byline.
+ *
+ * Named because the index is a Client Component now, and handing it
+ * whole `Post` objects would serialise every article's blocks into the
+ * page just to print five titles and excerpts.
+ */
+export type PostSummary = Omit<Post, "body" | "author">;
+
+export const SEED_POSTS: Post[] = [
   {
     slug: "what-official-whatsapp-access-actually-means",
     title: "What “official WhatsApp access” actually means",
@@ -211,17 +231,6 @@ const POSTS: Post[] = [
     ],
   },
 ];
-
-/** Newest first. Sorted here rather than at the call site so every
- *  consumer gets the same order, and so the eventual Supabase query can
- *  own the ordering without changing the pages. */
-export async function listPosts(): Promise<Post[]> {
-  return [...POSTS].sort((a, b) => b.date.localeCompare(a.date));
-}
-
-export async function getPost(slug: string): Promise<Post | undefined> {
-  return POSTS.find((p) => p.slug === slug);
-}
 
 /**
  * Formats an ISO date as "28 August 2026".

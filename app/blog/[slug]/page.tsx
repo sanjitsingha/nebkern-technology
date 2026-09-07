@@ -3,8 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Nav } from "@/components/site/nav";
+import { PostCover } from "@/components/site/post-cover";
+import { CopyLink } from "@/components/site/copy-link";
+import { ListLabel, PostRow } from "@/components/site/post-row";
 import { Footer } from "@/components/site/footer";
-import { getPost, listPosts, formatDate, type Block } from "@/lib/blog";
+import { formatDate, type Block } from "@/lib/blog";
+import { getPost, listPosts } from "@/lib/blog-store";
 
 /** Every post is known at build time, so every post is prerendered.
  *  Once the data comes from Supabase this same function does the same
@@ -129,11 +133,14 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
       <main id="main" className="flex-1">
         <article>
           <header className="border-b border-line-soft">
-            {/* Narrower than the site's usual container. A column of
-                running text wants roughly 65 characters a line; the
-                6xl grid the rest of the site uses would give nearly
-                double that and make it tiring to read. */}
-            <div className="mx-auto max-w-3xl px-5 pt-12 pb-12 sm:px-8 sm:pt-16 sm:pb-14">
+            {/* Still narrower than the site's 6xl grid, which would put
+                a full-width column of running text at a line length
+                nobody finishes. 4xl lands at roughly 90 characters at
+                the body's 18px — wide for prose, but the whole article
+                column moves together (header, cover, body and the
+                "Keep reading" list all read this width), so the page
+                stays one measure rather than three. */}
+            <div className="mx-auto max-w-4xl px-5 pt-12 pb-12 sm:px-8 sm:pt-16 sm:pb-14">
               <Link
                 href="/blog"
                 className="inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-muted transition-colors hover:text-ink"
@@ -153,77 +160,97 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
                 All posts
               </Link>
 
-              <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] text-muted">
-                <span className="font-medium text-accent">{post.tag}</span>
-                <span aria-hidden="true">·</span>
-                <time dateTime={post.date}>{formatDate(post.date)}</time>
-                <span aria-hidden="true">·</span>
-                <span>{post.readMinutes} min read</span>
-              </div>
-
-              <h1 className="display mt-4 text-[clamp(2rem,4vw,3rem)] font-medium text-ink text-balance">
+              {/* `text-pretty`, not `text-balance`. Balance finds the
+                  NARROWEST width that keeps the headline on the same
+                  number of lines, so it quietly ignores a wider column —
+                  widening the container moved this heading not at all.
+                  Pretty fills the measure and only guards the last line
+                  against a single-word orphan. */}
+              <h1 className="display mt-7 text-[clamp(2rem,4vw,3rem)] font-medium text-ink text-pretty">
                 {post.title}
               </h1>
 
-              <p className="mt-5 text-[1.1875rem] leading-relaxed text-ink-soft text-pretty">
-                {post.excerpt}
-              </p>
+              {/* Byline and article meta on one rule. The tag, date and
+                  read time used to sit above the headline, where they
+                  were the first thing read on the page — ahead of the
+                  title itself. Down here they answer the questions a
+                  reader actually has at that moment: who wrote this, and
+                  how long is it.
 
-              <div className="mt-8 flex items-center gap-3 border-t border-line-soft pt-6">
-                <span
-                  className="grid size-9 shrink-0 place-items-center bg-accent text-[0.8125rem] font-semibold text-accent-fg"
-                  aria-hidden="true"
-                >
-                  {post.author.name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")}
-                </span>
-                <span className="text-[0.875rem]">
-                  <span className="block font-medium text-ink">
-                    {post.author.name}
+                  `flex-wrap` with `sm:ml-auto` on the meta: the two
+                  groups share a line and sit at opposite ends when there
+                  is room, and the meta drops below the author when there
+                  is not. */}
+              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4 border-t border-line-soft pt-6">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="grid size-9 shrink-0 place-items-center bg-accent text-[0.8125rem] font-semibold text-accent-fg"
+                    aria-hidden="true"
+                  >
+                    {post.author.name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")}
                   </span>
-                  <span className="block text-muted">{post.author.role}</span>
-                </span>
+                  <span className="text-[0.875rem]">
+                    <span className="block font-medium text-ink">
+                      {post.author.name}
+                    </span>
+                    <span className="block text-muted">{post.author.role}</span>
+                  </span>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] text-muted sm:ml-auto">
+                  <span className="font-medium text-accent">{post.tag}</span>
+                  <span aria-hidden="true">·</span>
+                  <time dateTime={post.date}>{formatDate(post.date)}</time>
+                  <span aria-hidden="true">·</span>
+                  <span>{post.readMinutes} min read</span>
+                  <span aria-hidden="true">·</span>
+                  <CopyLink slug={post.slug} />
+                </div>
               </div>
             </div>
           </header>
 
-          <div className="mx-auto max-w-3xl px-5 py-12 sm:px-8 sm:py-16">
+          {/* Between the byline and the first paragraph, in the body's
+              own column rather than full-bleed — a cover wider than the
+              text it introduces reads as a banner for the page instead
+              of for the post. */}
+          <div className="mx-auto max-w-4xl px-5 pt-10 sm:px-8 sm:pt-12">
+            {/* 21:9, the same ratio the index's lead card uses. That
+                keeps one shape for a cover running the full width of a
+                column and 16:9 for the thumbnails — at this measure 16:9
+                was a 432px block sitting between the byline and the
+                first sentence. */}
+            <PostCover
+              cover={post.cover}
+              tag={post.tag}
+              ratio="21 / 9"
+              sizes="(min-width: 768px) 768px, calc(100vw - 2.5rem)"
+            />
+          </div>
+
+          <div className="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
             {post.body.map((block, i) => (
               <BlockView key={i} block={block} />
             ))}
           </div>
         </article>
 
+        {/* No `bg-surface-2` any more. The rows carry cover art now,
+            and an unset cover renders a surface-2 placeholder — on a
+            surface-2 band it would have disappeared into it. Paper, with
+            the `border-t` doing the separating, is also what the index's
+            list sits on, which is the point. */}
         {others.length > 0 && (
-          <section className="border-t border-line-soft bg-surface-2">
-            <div className="mx-auto max-w-3xl px-5 py-14 sm:px-8 sm:py-16">
-              <h2 className="text-[0.6875rem] font-medium tracking-[0.14em] text-muted uppercase">
-                Keep reading
-              </h2>
+          <section className="border-t border-line-soft">
+            <div className="mx-auto max-w-4xl px-5 py-14 sm:px-8 sm:py-16">
+              <ListLabel>Keep reading</ListLabel>
 
-              <ul className="mt-6 divide-y divide-line">
+              <ul className="divide-y divide-line-soft">
                 {others.map((other) => (
-                  <li key={other.slug}>
-                    <Link
-                      href={`/blog/${other.slug}`}
-                      className="group block py-5"
-                    >
-                      <div className="flex flex-wrap items-center gap-x-3 text-[0.8125rem] text-muted">
-                        <span className="font-medium text-accent">
-                          {other.tag}
-                        </span>
-                        <span aria-hidden="true">·</span>
-                        <time dateTime={other.date}>
-                          {formatDate(other.date)}
-                        </time>
-                      </div>
-                      <p className="mt-1.5 text-[1.125rem] font-semibold tracking-[-0.014em] text-ink transition-colors group-hover:text-accent text-balance">
-                        {other.title}
-                      </p>
-                    </Link>
-                  </li>
+                  <PostRow key={other.slug} post={other} />
                 ))}
               </ul>
             </div>
