@@ -80,6 +80,10 @@ function postFromForm(formData: FormData): Post {
     // Derived, never typed. A hand-entered read time is one more thing
     // to forget when a post is edited.
     readMinutes: readMinutes({ body }),
+    // Stamped on every save, including the first. This is what the
+    // sitemap reports, so a crawler learns the page changed without the
+    // published date being rewritten.
+    updatedAt: new Date().toISOString(),
   };
 
   if (coverSrc) {
@@ -149,4 +153,11 @@ function revalidateBlog(oldSlug: string, newSlug: string) {
   revalidatePath(`/blog/${oldSlug}`);
   if (newSlug !== oldSlug) revalidatePath(`/blog/${newSlug}`);
   revalidatePath("/admin/posts");
+
+  // Both are generated from the same posts, so a write leaves them as
+  // stale as the pages themselves. Without this the sitemap would go on
+  // advertising a deleted post, or omit a new one, until the next
+  // deploy.
+  revalidatePath("/sitemap.xml");
+  revalidatePath("/llms.txt");
 }

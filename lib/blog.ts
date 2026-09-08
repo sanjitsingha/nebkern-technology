@@ -164,6 +164,19 @@ export interface Post {
   /** ISO date. Rendered through `formatDate` so the string is identical
    *  on the server and in the browser. */
   date: string;
+  /**
+   * ISO timestamp of the last edit, distinct from `date`.
+   *
+   * `date` is when the post was PUBLISHED and is the writer's to set —
+   * a correction next year should not restate the article as new. This
+   * is stamped by the admin on every save and is what the sitemap
+   * reports as `lastmod`, so a crawler is told the page changed
+   * without the published date moving.
+   *
+   * Optional: posts written before it existed have none, and the
+   * sitemap falls back to `date` for those.
+   */
+  updatedAt?: string;
   readMinutes: number;
   tag: string;
   /**

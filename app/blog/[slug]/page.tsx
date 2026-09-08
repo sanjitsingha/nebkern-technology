@@ -7,7 +7,14 @@ import { PostCover } from "@/components/site/post-cover";
 import { CopyLink } from "@/components/site/copy-link";
 import { ListLabel, PostRow } from "@/components/site/post-row";
 import { Footer } from "@/components/site/footer";
-import { formatDate, safeHref, type Block, type Span } from "@/lib/blog";
+import {
+  blockText,
+  formatDate,
+  safeHref,
+  type Block,
+  type Span,
+} from "@/lib/blog";
+import { SITE } from "@/lib/site";
 
 /** Keys map to utilities rather than inline styles, so a body can never
  *  put an arbitrary font-family on the page. */
@@ -35,12 +42,29 @@ export async function generateMetadata({
     title: post.title,
     description: post.excerpt,
     alternates: { canonical: `/blog/${post.slug}` },
+    authors: [{ name: post.author.name }],
     openGraph: {
-      siteName: "Nebkern",
+      siteName: SITE.shortName,
       type: "article",
       title: post.title,
       description: post.excerpt,
+      url: `/blog/${post.slug}`,
       publishedTime: post.date,
+      // Distinct from `publishedTime`: an edit should tell a crawler
+      // the page changed without restating it as newly published.
+      modifiedTime: post.updatedAt ?? post.date,
+      authors: [post.author.name],
+      // Falls through to the site-wide opengraph-image when a post has
+      // no cover of its own, so a shared link is never a bare card.
+      ...(post.cover
+        ? { images: [{ url: post.cover.src, alt: post.cover.alt }] }
+        : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.excerpt,
+      ...(post.cover ? { images: [post.cover.src] } : {}),
     },
   };
 }
@@ -228,8 +252,52 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
     .filter((p) => p.slug !== post.slug)
     .slice(0, 2);
 
+  /**
+   * Article structured data.
+   *
+   * The layout already publishes an Organization; this is the per-page
+   * half, and it is what lets a search engine show a headline, a date
+   * and a byline rather than guessing them out of the markup.
+   *
+   * `isPartOf` and `publisher` tie the article back to that
+   * Organization by URL, so the two graphs are one graph rather than
+   * two unrelated claims on the same domain.
+   */
+  const articleJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: post.title,
+    description: post.excerpt,
+    datePublished: post.date,
+    dateModified: post.updatedAt ?? post.date,
+    author: {
+      "@type": "Person",
+      name: post.author.name,
+      jobTitle: post.author.role,
+    },
+    publisher: { "@type": "Organization", name: SITE.name, url: `${SITE.url}/` },
+    isPartOf: { "@type": "Blog", name: `${SITE.shortName} blog`, url: `${SITE.url}/blog` },
+    // Tells a crawler which URL is the article's own, independently of
+    // the one it happened to arrive on.
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${SITE.url}/blog/${post.slug}`,
+    },
+    keywords: post.tag,
+    wordCount: post.body.map(blockText).join(" ").split(/s+/).filter(Boolean)
+      .length,
+    ...(post.cover ? { image: [post.cover.src] } : {}),
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        // Serialised, not interpolated — the values are ours, but a
+        // stringify keeps a stray quote from ever breaking the tag.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
+
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-60 focus:bg-accent focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-accent-fg"
