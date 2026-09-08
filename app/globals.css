@@ -106,18 +106,48 @@ body {
   line-height: 1.04;
 }
 
-/* The hero backdrop: a faint engineering grid that fades out before it
-   reaches the text. Pure CSS — no image request. */
-.grid-field {
-  background-image:
-    linear-gradient(to right, var(--line-soft) 1px, transparent 1px),
-    linear-gradient(to bottom, var(--line-soft) 1px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(
-    ellipse 80% 60% at 50% 0%,
-    #000 0%,
-    transparent 75%
-  );
+/* The hero backdrop's ripple.
+
+   `animate-cell-ripple` is referenced by
+   components/ui/background-ripple-effect.tsx, but the Aceternity
+   registry does not ship these keyframes — without them the class
+   resolves to nothing and clicking a cell does nothing at all. Written
+   as plain CSS rather than a Tailwind `@theme` entry to sit alongside
+   the other hand-written utilities in this file.
+
+   Both timings come from the cell itself: the component sets --delay
+   and --duration per cell from its distance to the one that was
+   clicked, which is what makes the flash travel outwards instead of
+   firing everywhere at once. The fallbacks matter — a cell rendered
+   before any click has neither. */
+.animate-cell-ripple {
+  animation: cell-ripple var(--duration, 400ms) ease-out var(--delay, 0ms);
+}
+
+@keyframes cell-ripple {
+  0% {
+    background-color: transparent;
+  }
+  35% {
+    /* `--intensity` is written per cell from its distance to the click,
+       so the same keyframes give a strong flash at the centre and a
+       progressively weaker one outwards — the ripple fades out instead
+       of stopping at a hard ring.
+
+       55%, not 100%: a cell going to solid accent is far louder than
+       anything else in this grid — the hover state is 16% of the same
+       colour — and it read as a glitch rather than a ripple. This is
+       the peak, at the point of the click; every other cell scales
+       down from it. */
+    background-color: color-mix(
+      in oklab,
+      var(--cell-ripple-color) calc(var(--intensity, 1) * 55%),
+      transparent
+    );
+  }
+  100% {
+    background-color: transparent;
+  }
 }
 
 /* Scroll-revealed statement.
@@ -227,4 +257,40 @@ body {
    caret can land on an empty line with nothing to show for it. */
 .admin-prose .ProseMirror-gapcursor {
   display: block;
+}
+
+/* Scroll reveal: content rises a little into place the first time it
+   enters the viewport.
+
+   The state lives in CSS and only the `is-in` class is toggled from JS,
+   so the work per element is one class write, not a style recalculation
+   driven from a scroll handler.
+
+   Deliberately small — 14px and half a second. A section that travels
+   further reads as a page that is still loading.
+
+   Anything already on screen at load is revealed immediately by the
+   observer's first callback, so the hero does not sit blank while the
+   reader waits for a scroll that never comes. */
+.reveal-up {
+  opacity: 0;
+  transform: translateY(14px);
+  transition:
+    opacity 0.5s ease-out,
+    transform 0.5s ease-out;
+}
+
+.reveal-up.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Reduced motion gets the content, not the choreography. The global
+   rule below already flattens the transition to nothing, but this is
+   explicit: the point is that nothing may end up stuck at opacity 0. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal-up {
+    opacity: 1;
+    transform: none;
+  }
 }

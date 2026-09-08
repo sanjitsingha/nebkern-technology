@@ -7,6 +7,7 @@ import { Values } from "@/components/site/values";
 import { Statement } from "@/components/site/statement";
 import { Cta } from "@/components/site/cta";
 import { Footer } from "@/components/site/footer";
+import { Reveal } from "@/components/site/reveal";
 
 // Hero states the company, the slab shows what it ships, then the rest
 // of the page backs both up. Nebkern is the subject of this site; the
@@ -27,13 +28,29 @@ export default function Home() {
       <Nav />
 
       <main id="main" className="flex-1">
+        {/* The hero is deliberately not wrapped. It is on screen at
+            load, so it has nothing to scroll into — animating it would
+            just delay the first thing anyone reads. */}
         <Hero />
-        <Apps />
-        <Slider />
-        <Banner />
-        <Values />
-        <Statement />
-        <Cta />
+
+        <Reveal>
+          <Apps />
+        </Reveal>
+        <Reveal>
+          <Banner />
+        </Reveal>
+        <Reveal>
+          <Values />
+        </Reveal>
+        <Reveal>
+          <Slider />
+        </Reveal>
+        <Reveal>
+          <Statement />
+        </Reveal>
+        <Reveal>
+          <Cta />
+        </Reveal>
       </main>
 
       <Footer />

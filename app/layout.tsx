@@ -100,6 +100,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${sans.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col font-sans">
+        <noscript>
+          {/* The reveal is JS-driven, so with JS off nothing would ever
+              clear the opacity. Everything stays visible instead. */}
+          <style
+            dangerouslySetInnerHTML={{
+              __html: ".reveal-up{opacity:1;transform:none}",
+            }}
+          />
+        </noscript>
         <script
           type="application/ld+json"
           // Serialised, not interpolated — the values are ours, but a
