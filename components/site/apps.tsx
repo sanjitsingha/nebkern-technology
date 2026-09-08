@@ -9,6 +9,19 @@ import { PRODUCTS, STATUS_LABEL, type Product } from "@/lib/products";
 const LOGO_H = 32;
 
 /**
+ * How far the slab rides up onto the hero.
+ *
+ * This is the visible overlap, not a nudge that has to be read against
+ * the padding — the section's top padding is removed below so the two
+ * cannot fight. Fluid, because the hero's own height is fluid and a
+ * fixed bite out of it is a different bite at every viewport.
+ *
+ * The hero has `pb-36 sm:pb-44` under its copy, so even at the ceiling
+ * this only creeps into empty space; it never reaches the headline.
+ */
+const HERO_OVERLAP = "clamp(56px, 7vw, 120px)";
+
+/**
  * One app in the right-hand 60%.
  *
  * Stacked rows rather than a two-up grid: at 60% of the container each
@@ -103,7 +116,18 @@ export function Apps() {
   const apps = PRODUCTS.filter((p) => p.isApp);
 
   return (
-    <section id="products" className="relative scroll-mt-20 overflow-hidden">
+    // `z-10` so the slab paints over the hero rather than under it —
+    // the hero is positioned too, and leaving both at `z-auto` makes
+    // the answer depend on document order alone.
+    //
+    // `scroll-mt` grows with the overlap: the nav links here, and
+    // without it the anchor would land with the slab's top tucked under
+    // the bar by exactly the amount it now rides up.
+    <section
+      id="products"
+      className="relative z-10 scroll-mt-32 overflow-hidden"
+      style={{ marginTop: `calc(${HERO_OVERLAP} * -1)` }}
+    >
       {/* The slab straddles the seam: its top half over the hero's
           paper (which is just the page background showing through),
           its bottom half over this section's grey.
@@ -122,7 +146,7 @@ export function Apps() {
           There is no `border-t` on purpose: above the seam this
           section matches the hero exactly, so a divider would draw a
           line across a continuous surface. */}
-      <div className="relative mx-auto max-w-6xl px-5 pt-20 pb-40 sm:px-8 sm:pt-24 sm:pb-48">
+      <div className="relative mx-auto max-w-6xl px-5 pb-40 sm:px-8 sm:pb-48">
         <div className="relative">
           <div
             className="absolute top-1/2 left-1/2 h-screen w-screen -translate-x-1/2 bg-surface-2"
