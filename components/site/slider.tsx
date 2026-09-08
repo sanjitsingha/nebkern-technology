@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useRef,
   useState,
   type PointerEvent as ReactPointerEvent,
@@ -41,6 +42,9 @@ const SLIDES = [
  *  make the panel feel twitchy. */
 const SWIPE_PX = 50;
 
+/** How long each slide holds before the next takes over. */
+const AUTOPLAY_MS = 4000;
+
 function Chevron({ direction }: { direction: "left" | "right" }) {
   return (
     <svg
@@ -75,7 +79,33 @@ function Chevron({ direction }: { direction: "left" | "right" }) {
  */
 export function Slider() {
   const [index, setIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const dragX = useRef<number | null>(null);
+
+  /**
+   * Advance on a timer.
+   *
+   * `index` is in the dependency list on purpose: changing slide by any
+   * means tears the interval down and starts a fresh one, so a manual
+   * click gets a full four seconds rather than whatever was left on the
+   * previous tick.
+   *
+   * Not gated on `prefers-reduced-motion`. The crossfade already
+   * collapses to an instant swap under that setting
+   * (`motion-reduce:duration-0`), so what is left is a slide changing,
+   * not something sliding — and gating it would switch the carousel off
+   * entirely on any machine with Windows' animation effects disabled,
+   * which is a performance setting far more often than a vestibular
+   * one. The hover and focus pause above is the stop control.
+   */
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(
+      () => setIndex((i) => (i + 1) % SLIDES.length),
+      AUTOPLAY_MS,
+    );
+    return () => clearInterval(id);
+  }, [paused, index]);
 
   const go = (direction: 1 | -1) =>
     // Wraps in both directions, so neither arrow is ever a dead end.
@@ -99,14 +129,45 @@ export function Slider() {
   };
 
   const arrow =
-    "grid size-8 place-items-center rounded-full border border-line bg-surface text-ink shadow-[0_6px_20px_-10px_rgb(0_0_0/0.28)] transition-colors hover:border-ink/25";
+    "grid size-8 place-items-center rounded-full border border-line bg-surface text-ink transition-colors hover:border-accent hover:text-accent";
 
   return (
     // `id="company"` moved here with the copy. The nav and the footer
     // both link to it, and an anchor pointing at a section that no
     // longer exists fails silently.
-    <section id="company" className="scroll-mt-20 overflow-hidden">
-      <div className="relative mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
+    // Half paper, half grey, with the card straddling the join.
+    //
+    // A hard-stop gradient rather than two stacked divs: one paint, no
+    // extra elements, and the stop is a single number to move if the
+    // seam ever wants to sit somewhere other than the middle.
+    //
+    // The two colours are not decorative. `--paper` is what the values
+    // panel above sits on and `--surface-2` is the Statement band
+    // below, so the top half continues the section before it and the
+    // bottom half becomes the section after it — the card appears to
+    // bridge them rather than to sit in a third band of its own.
+    //
+    // The card lands on the join for free: the container's vertical
+    // padding is symmetric, so its centre already is the section's.
+    <section
+      id="company"
+      className="scroll-mt-20 overflow-hidden"
+      style={{
+        background:
+          "linear-gradient(to bottom, var(--paper) 50%, var(--surface-2) 50%)",
+      }}
+    >
+      <div
+        className="relative mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20"
+        // Hovering or tabbing into the carousel stops the clock. Content
+        // that moves on its own has to be stoppable, and the moment a
+        // reader is actually engaging with a slide is the moment it
+        // should not be yanked away from them.
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocus={() => setPaused(true)}
+        onBlur={() => setPaused(false)}
+      >
         <div
           // Focusable and labelled so the arrow keys have somewhere to
           // land — the native scrolling that used to provide them is
@@ -124,7 +185,7 @@ export function Slider() {
           onPointerCancel={() => (dragX.current = null)}
           // Horizontal gestures are ours, vertical ones stay with the
           // page — without this a swipe would fight the page scroll.
-          className="grid touch-pan-y"
+          className="grid touch-pan-y sm:px-14 lg:px-20"
         >
           {SLIDES.map((slide, i) => {
             const active = i === index;
@@ -133,7 +194,7 @@ export function Slider() {
                 key={slide.title}
                 // Every slide in the same grid cell: they overlap, so
                 // one can fade up as another fades down.
-                className={`col-start-1 row-start-1 transition-opacity duration-500 motion-reduce:duration-0 ${
+                className={`col-start-1 row-start-1 h-full transition-opacity duration-500 motion-reduce:duration-0 ${
                   active ? "opacity-100" : "pointer-events-none opacity-0"
                 }`}
                 aria-hidden={!active}
@@ -143,13 +204,18 @@ export function Slider() {
                     white margin around the colour — the same move the
                     apps slab makes, and what stops the colour reading
                     as a full-bleed band across the page. */}
-                <div className="rounded-md border border-line bg-surface p-2.5 sm:p-3">
+                {/* `h-full` down both layers. The slides share one grid
+                    cell, so the CELL is already the height of the
+                    tallest — but a block child only grows to its own
+                    content, which left the short slides visibly shorter
+                    and the card resizing as it crossfaded. */}
+                <div className="h-full rounded-md border border-line bg-surface p-2.5 sm:p-3">
                   <div
                     // `min-h` rather than an aspect ratio: a ratio ties
                     // height to width, so the panel grew taller on
                     // every wider screen. A minimum keeps it short and
                     // still lets it grow if the copy needs the room.
-                    className="flex min-h-[264px] flex-col justify-center rounded-md px-7 py-10 select-none sm:min-h-[288px] sm:px-12"
+                    className="flex h-full min-h-[208px] flex-col justify-center rounded-md px-6 py-6 select-none sm:min-h-[228px] sm:px-10 sm:py-7"
                     style={{ background: slide.color }}
                   >
                     <p className="font-mono text-[0.75rem] tracking-[0.1em] text-white/70">
@@ -170,15 +236,20 @@ export function Slider() {
           })}
         </div>
 
-        {/* Overlaid on the card's edges. With the track back at the
-            site's full content width there is no gutter left to sit in,
-            so they ride on the colour — where a white disc reads
-            perfectly well against any of the three. */}
+        {/* At the column's outer edge, in the gutter the track's own
+            `sm:px-14 lg:px-20` opens up — so they sit clear of the
+            coloured panel instead of on it.
+
+            A phone has no gutter to give: the column is only `px-5`
+            wide at the sides, so there they stay hard against the edge
+            and just touch the card. Everything from `sm` up gets real
+            separation, which is where the overlap was actually being
+            noticed. */}
         <button
           type="button"
           onClick={() => go(-1)}
           aria-label="Previous"
-          className={`${arrow} absolute top-1/2 left-7 -translate-y-1/2 sm:left-11`}
+          className={`${arrow} absolute top-1/2 left-0 -translate-y-1/2 sm:left-4 lg:left-6`}
         >
           <Chevron direction="left" />
         </button>
@@ -187,7 +258,7 @@ export function Slider() {
           type="button"
           onClick={() => go(1)}
           aria-label="Next"
-          className={`${arrow} absolute top-1/2 right-7 -translate-y-1/2 sm:right-11`}
+          className={`${arrow} absolute top-1/2 right-0 -translate-y-1/2 sm:right-4 lg:right-6`}
         >
           <Chevron direction="right" />
         </button>

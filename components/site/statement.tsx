@@ -102,7 +102,7 @@ export function Statement() {
     // Grey, so the statement reads as its own band between two paper
     // sections. The colour change draws the boundary, so no border.
     // Ordinary flow — it scrolls past like any other section.
-    <section className="bg-surface-2">
+    <section className="relative overflow-hidden bg-surface-2">
       <div className="relative mx-auto max-w-6xl px-5 py-28 sm:px-8 sm:py-36">
         <p
           ref={ref}
@@ -124,30 +124,36 @@ export function Statement() {
           ))}
         </p>
 
-        {/* Bottom-right, sitting on the section's floor. `bottom-0` is
-            the padding box's edge, so the skyline lands on the section
-            boundary like a ground line rather than floating.
+      </div>
 
-            It clears the paragraph on its own: the text is max-w-4xl
-            and ends above the bottom padding, which is where this sits
-            — so no overlap and no need to reserve space for it. Held
-            back to 62% width and softened, because it is scenery, not
-            an illustration the reader is meant to study.
+      {/* Outside the 6xl column: a sibling of it, positioned against the
+          SECTION, so `right-0` is the screen's edge rather than the
+          column's gutter. That is the whole change — it now runs off the
+          side of the page instead of stopping where the text does.
 
-            Decorative, so `alt=""` plus `aria-hidden` — a screen reader
-            announcing "indian wonders" here would add nothing. */}
-        <div
-          className="pointer-events-none absolute right-5 bottom-0 w-[min(720px,62%)] opacity-40 sm:right-8"
-          aria-hidden="true"
-        >
-          <Image
-            src={SKYLINE.src}
-            alt=""
-            width={SKYLINE.width}
-            height={SKYLINE.height}
-            className="h-auto w-full"
-          />
-        </div>
+          `bottom-0` still puts it on the section's floor, so it reads as
+          a ground line rather than floating, and it still clears the
+          paragraph on its own: the text is `max-w-4xl` and ends above
+          the bottom padding.
+
+          Width in `vw` now, because a percentage here would resolve
+          against the full-width section rather than the column it used
+          to sit in — the same 62% would be a much bigger picture. Kept
+          soft, because it is scenery, not something to study.
+
+          Decorative, so `alt=""` plus `aria-hidden` — a screen reader
+          announcing "indian wonders" here would add nothing. */}
+      <div
+        className="pointer-events-none absolute right-0 bottom-0 w-[min(620px,44vw)] opacity-40"
+        aria-hidden="true"
+      >
+        <Image
+          src={SKYLINE.src}
+          alt=""
+          width={SKYLINE.width}
+          height={SKYLINE.height}
+          className="h-auto w-full"
+        />
       </div>
     </section>
   );
