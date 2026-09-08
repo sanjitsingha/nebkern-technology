@@ -7,7 +7,11 @@ import { PostCover } from "@/components/site/post-cover";
 import { CopyLink } from "@/components/site/copy-link";
 import { ListLabel, PostRow } from "@/components/site/post-row";
 import { Footer } from "@/components/site/footer";
-import { formatDate, type Block } from "@/lib/blog";
+import { formatDate, safeHref, type Block, type Span } from "@/lib/blog";
+
+/** Keys map to utilities rather than inline styles, so a body can never
+ *  put an arbitrary font-family on the page. */
+const FONT_CLASS = { serif: "font-serif", mono: "font-mono" } as const;
 import { getPost, listPosts } from "@/lib/blog-store";
 
 /** Every post is known at build time, so every post is prerendered.
@@ -49,38 +53,140 @@ export async function generateMetadata({
  * the page. Every block type gets its styling here, which is also why
  * the site needs no prose plugin.
  */
+/**
+ * A run of formatted text.
+ *
+ * Built from data, never from markup: a `Span` says bold or link and
+ * this decides what element that becomes. There is no
+ * `dangerouslySetInnerHTML` anywhere in the article, which is what
+ * keeps a post — from the database, or from /admin — unable to put a
+ * script on the page.
+ *
+ * `safeHref` drops anything that is not http, https, mailto or an
+ * in-page anchor, and a rejected link degrades to plain text rather
+ * than rendering a dead or dangerous one.
+ */
+function SpanView({ span }: { span: Span }) {
+  let node: React.ReactNode = span.text;
+
+  if (span.font) {
+    node = <span className={FONT_CLASS[span.font]}>{node}</span>;
+  }
+
+  if (span.code) {
+    node = (
+      <code className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[0.9em] text-ink">
+        {node}
+      </code>
+    );
+  }
+  if (span.bold) node = <strong className="font-semibold text-ink">{node}</strong>;
+  if (span.italic) node = <em>{node}</em>;
+  if (span.strike) node = <s>{node}</s>;
+
+  const href = safeHref(span.href);
+  if (href) {
+    const external = /^https?:/.test(href);
+    node = (
+      <a
+        href={href}
+        // `noreferrer` alongside `noopener`: the article links out to
+        // sites we do not control.
+        {...(external
+          ? { target: "_blank", rel: "noopener noreferrer" }
+          : {})}
+        className="font-medium text-accent underline underline-offset-4 transition-colors hover:text-accent-hover"
+      >
+        {node}
+      </a>
+    );
+  }
+
+  return <>{node}</>;
+}
+
+function Spans({ spans }: { spans: Span[] }) {
+  return (
+    <>
+      {spans.map((span, i) => (
+        <SpanView key={i} span={span} />
+      ))}
+    </>
+  );
+}
+
+/** A list item, shared by the bullet and numbered lists so the two
+ *  cannot drift apart. */
+function ListItem({ spans, marker }: { spans: Span[]; marker: React.ReactNode }) {
+  return (
+    <li className="flex gap-3 text-[1.0625rem] leading-relaxed text-ink-soft">
+      {marker}
+      <span>
+        <Spans spans={spans} />
+      </span>
+    </li>
+  );
+}
+
 function BlockView({ block }: { block: Block }) {
   switch (block.type) {
     case "h2":
       return (
         <h2 className="mt-12 mb-4 text-[1.5rem] font-semibold tracking-[-0.02em] text-ink sm:text-[1.75rem]">
-          {block.text}
+          <Spans spans={block.spans} />
         </h2>
+      );
+
+    case "h3":
+      return (
+        <h3 className="mt-9 mb-3 text-[1.1875rem] font-semibold tracking-[-0.018em] text-ink sm:text-[1.3125rem]">
+          <Spans spans={block.spans} />
+        </h3>
       );
 
     case "ul":
       return (
         <ul className="my-6 flex flex-col gap-2.5">
-          {block.items.map((item) => (
-            <li
-              key={item}
-              className="flex gap-3 text-[1.0625rem] leading-relaxed text-ink-soft"
-            >
-              <span
-                className="mt-[0.7em] size-1.5 shrink-0 bg-accent"
-                aria-hidden="true"
-              />
-              {item}
-            </li>
+          {block.items.map((item, i) => (
+            <ListItem
+              key={i}
+              spans={item}
+              marker={
+                <span
+                  className="mt-[0.7em] size-1.5 shrink-0 bg-accent"
+                  aria-hidden="true"
+                />
+              }
+            />
           ))}
         </ul>
+      );
+
+    case "ol":
+      return (
+        <ol className="my-6 flex flex-col gap-2.5">
+          {block.items.map((item, i) => (
+            <ListItem
+              key={i}
+              spans={item}
+              // Not `list-decimal`: the rows are flex, so a marker box
+              // of a known width keeps every line's text on the same
+              // left edge past nine.
+              marker={
+                <span className="w-5 shrink-0 font-medium text-accent tabular-nums">
+                  {i + 1}.
+                </span>
+              }
+            />
+          ))}
+        </ol>
       );
 
     case "quote":
       return (
         <blockquote className="my-9 border-l-2 border-accent pl-6">
           <p className="text-[1.25rem] leading-snug font-medium text-ink text-pretty sm:text-[1.375rem]">
-            {block.text}
+            <Spans spans={block.spans} />
           </p>
           {block.cite && (
             <cite className="mt-2 block text-[0.875rem] not-italic text-muted">
@@ -99,10 +205,13 @@ function BlockView({ block }: { block: Block }) {
         </pre>
       );
 
+    case "hr":
+      return <hr className="my-10 border-0 border-t border-line" />;
+
     default:
       return (
         <p className="my-5 text-[1.0625rem] leading-relaxed text-ink-soft text-pretty sm:text-[1.125rem]">
-          {block.text}
+          <Spans spans={block.spans} />
         </p>
       );
   }

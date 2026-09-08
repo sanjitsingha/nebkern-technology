@@ -1,7 +1,14 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-import { SEED_POSTS, type Post } from "@/lib/blog";
+import {
+  blockText,
+  SEED_POSTS,
+  type Block,
+  type LegacyBlock,
+  type Post,
+  type StoredPost,
+} from "@/lib/blog";
 
 /**
  * The blog's data store: a JSON file on disk.
@@ -31,15 +38,64 @@ function sorted(posts: Post[]): Post[] {
   return [...posts].sort((a, b) => b.date.localeCompare(a.date));
 }
 
+/**
+ * Brings a block up to the current shape.
+ *
+ * Bodies written before inline formatting existed store a plain string
+ * where there is now a `Span[]`. Upgrading them here — at the one place
+ * data enters the app — means no page, renderer or editor has to know
+ * that two shapes ever existed, and a post rewrites itself into the new
+ * shape the first time somebody saves it.
+ */
+function normalizeBlock(block: Block | LegacyBlock): Block {
+  switch (block.type) {
+    case "p":
+    case "h2":
+      return "spans" in block
+        ? block
+        : { type: block.type, spans: [{ text: block.text }] };
+
+    case "ul":
+      return "items" in block && typeof block.items[0] === "string"
+        ? {
+            type: "ul",
+            items: (block.items as string[]).map((t) => [{ text: t }]),
+          }
+        : (block as Block);
+
+    case "quote":
+      return "spans" in block
+        ? block
+        : {
+            type: "quote",
+            spans: [{ text: block.text }],
+            ...(block.cite ? { cite: block.cite } : {}),
+          };
+
+    // `code` and `hr` never held spans; `h3` and `ol` did not exist
+    // before them, so anything of those types is already current.
+    default:
+      return block as Block;
+  }
+}
+
+function normalizePost(post: StoredPost): Post {
+  return { ...post, body: post.body.map(normalizeBlock) };
+}
+
 async function readAll(): Promise<Post[]> {
+  let stored: StoredPost[];
+
   try {
-    return JSON.parse(await fs.readFile(FILE, "utf8")) as Post[];
+    stored = JSON.parse(await fs.readFile(FILE, "utf8")) as StoredPost[];
   } catch {
     // First run, or the file was deleted. Seeding from the array in
     // lib/blog.ts means a fresh clone has content to render rather than
     // an empty blog that looks broken.
-    return SEED_POSTS;
+    stored = SEED_POSTS;
   }
+
+  return stored.map(normalizePost);
 }
 
 async function writeAll(posts: Post[]): Promise<void> {
@@ -64,9 +120,7 @@ export function slugify(title: string): string {
  *  bug even when the arithmetic is right. */
 export function readMinutes(post: Pick<Post, "body">): number {
   const words = post.body
-    .map((b) =>
-      b.type === "ul" ? b.items.join(" ") : "text" in b ? b.text : "",
-    )
+    .map(blockText)
     .join(" ")
     .trim()
     .split(/\s+/)

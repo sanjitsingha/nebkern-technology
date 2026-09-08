@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* Quill's snow theme. Must sit here: CSS ignores an @import that
+   appears after any rule, and every .ql-* override further down
+   depends on this having loaded first. */
+@import "quill/dist/quill.snow.css";
 
 /* ============================================================
    nebkern — the parent identity.
@@ -190,28 +194,91 @@ body {
 }
 
 /* ============================================================
-   Admin editor content.
+   Admin editor — Quill's snow theme, restyled.
 
-   Tiptap renders real h2/p/ul/blockquote/pre inside its editable div,
-   and Tailwind's reset strips all of them back to plain text. Without
-   these the editor shows a heading and a paragraph as the same thing,
-   which makes the toolbar's state impossible to read.
+   Quill ships its chrome as `.ql-*` classes and its own borders and
+   greys. Everything below re-skins those onto the site's tokens rather
+   than importing quill.snow.css and living with a second design system
+   inside the admin.
+
+   Scoped under `.quill-host` so none of it can reach the public pages.
 
    Deliberately NOT a copy of the article page's typography. This is a
    writing surface, not a preview — matching the published page here
    would promise a WYSIWYG the block model does not actually deliver.
    ============================================================ */
-.admin-prose {
+/* ---- Chrome ---- */
+
+.quill-host .ql-toolbar.ql-snow,
+.quill-host .ql-container.ql-snow {
+  border: 0;
+}
+
+.quill-host .ql-toolbar.ql-snow {
+  border-bottom: 1px solid var(--line-soft);
+  background: var(--surface-2);
+  padding: 0.4rem 0.5rem;
+  font-family: var(--font-sans);
+}
+
+/* Quill's separator between toolbar groups. */
+.quill-host .ql-toolbar.ql-snow .ql-formats {
+  margin-right: 0.6rem;
+}
+
+.quill-host .ql-snow .ql-stroke {
+  stroke: var(--muted);
+}
+
+.quill-host .ql-snow .ql-fill {
+  fill: var(--muted);
+}
+
+.quill-host .ql-snow .ql-picker {
+  color: var(--ink);
+}
+
+.quill-host .ql-snow button:hover .ql-stroke,
+.quill-host .ql-snow button.ql-active .ql-stroke,
+.quill-host .ql-snow .ql-picker-label:hover .ql-stroke {
+  stroke: var(--accent);
+}
+
+.quill-host .ql-snow button:hover .ql-fill,
+.quill-host .ql-snow button.ql-active .ql-fill {
+  fill: var(--accent);
+}
+
+.quill-host .ql-snow .ql-picker-label:hover,
+.quill-host .ql-snow .ql-picker-item:hover,
+.quill-host .ql-snow .ql-picker-item.ql-selected {
+  color: var(--accent);
+}
+
+.quill-host .ql-snow .ql-picker-options {
+  border: 1px solid var(--line);
+  border-radius: 0.375rem;
+  background: var(--surface);
+  box-shadow: 0 10px 28px -14px rgb(0 0 0 / 0.22);
+}
+
+/* ---- The writing surface ---- */
+
+.quill-host .ql-editor {
+  min-height: 26rem;
+  padding: 1rem;
+  font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.7;
   color: var(--ink);
 }
 
-.admin-prose > * + * {
-  margin-top: 0.85rem;
+.quill-host .ql-editor.ql-blank::before {
+  color: var(--muted);
+  font-style: normal;
 }
 
-.admin-prose h2 {
+.quill-host .ql-editor h2 {
   margin-top: 1.6rem;
   font-size: 1.3rem;
   font-weight: 600;
@@ -219,30 +286,46 @@ body {
   line-height: 1.25;
 }
 
-.admin-prose ul {
-  list-style: disc;
-  padding-left: 1.35rem;
+.quill-host .ql-editor h3 {
+  margin-top: 1.3rem;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.018em;
 }
 
-.admin-prose li::marker {
+.quill-host .ql-editor strong {
+  font-weight: 600;
+}
+
+.quill-host .ql-editor s {
   color: var(--muted);
 }
 
-.admin-prose blockquote {
+/* Underlined and in the accent, because the editor does not open links
+   on click — this is the only signal that one is there at all. */
+.quill-host .ql-editor a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.quill-host .ql-editor blockquote {
   border-left: 3px solid var(--accent);
   padding-left: 1rem;
   color: var(--ink-soft);
 }
 
-/* The second paragraph of a quote is its attribution — see
+/* The second line of a quote is its attribution — see
    `lib/blog-blocks.ts`. Shown differently here so the convention is
    visible while writing rather than a surprise on publish. */
-.admin-prose blockquote p + p {
+.quill-host .ql-editor blockquote + blockquote {
+  border-left-color: var(--line);
   font-size: 0.875rem;
   color: var(--muted);
 }
 
-.admin-prose pre {
+.quill-host .ql-editor pre.ql-syntax,
+.quill-host .ql-editor .ql-code-block-container {
   overflow-x: auto;
   border-radius: 0.375rem;
   background: var(--panel);
@@ -253,10 +336,59 @@ body {
   color: var(--panel-fg);
 }
 
-/* ProseMirror gives the focused block this class; without a rule the
-   caret can land on an empty line with nothing to show for it. */
-.admin-prose .ProseMirror-gapcursor {
-  display: block;
+.quill-host .ql-editor hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin-block: 1.4rem;
+}
+
+/* ---- Fonts ----
+
+   Quill's Font attributor writes a CLASS, not an inline style, which is
+   what keeps an arbitrary family out of the document. These are the
+   only two it can write, and their stacks are the same ones the article
+   renders — `FONT_STACKS` in lib/blog.ts is the record of that. */
+
+.quill-host .ql-font-serif,
+.quill-host .ql-picker-item[data-value="serif"]::before,
+.quill-host .ql-picker-label[data-value="serif"]::before {
+  font-family: ui-serif, Georgia, "Times New Roman", serif;
+}
+
+.quill-host .ql-font-mono,
+.quill-host .ql-picker-item[data-value="mono"]::before,
+.quill-host .ql-picker-label[data-value="mono"]::before {
+  font-family: var(--font-mono);
+}
+
+/* Quill labels a picker from `data-value`, which would otherwise read
+   as the raw keys. */
+.quill-host .ql-picker.ql-font .ql-picker-item::before,
+.quill-host .ql-picker.ql-font .ql-picker-label::before {
+  content: "Default";
+}
+
+.quill-host .ql-picker.ql-font .ql-picker-item[data-value="serif"]::before,
+.quill-host .ql-picker.ql-font .ql-picker-label[data-value="serif"]::before {
+  content: "Serif";
+}
+
+.quill-host .ql-picker.ql-font .ql-picker-item[data-value="mono"]::before,
+.quill-host .ql-picker.ql-font .ql-picker-label[data-value="mono"]::before {
+  content: "Mono";
+}
+
+/* The divider button has no icon of its own — it is a custom handler,
+   so Quill renders an empty button. */
+.quill-host .ql-toolbar button.ql-divider::after {
+  content: "―";
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--muted);
+}
+
+.quill-host .ql-toolbar button.ql-divider:hover::after {
+  color: var(--accent);
 }
 
 /* Scroll reveal: content rises a little into place the first time it

@@ -19,12 +19,143 @@
  * is ever injected as markup.
  */
 
+/**
+ * A run of text with its formatting attached.
+ *
+ * This is what lets the editor offer bold, italic and links without the
+ * body becoming HTML. The renderer turns a span into a `<strong>` or an
+ * `<a>` itself; nothing is ever injected as markup, so a post loaded
+ * from a database — or typed into /admin — still cannot smuggle a
+ * script onto the page.
+ *
+ * `href` is stored as written and sanitised at render time, because the
+ * editor cannot be trusted to be the only writer of this data forever.
+ */
+/**
+ * The families a span may use. Absent means the site's sans, which is
+ * what the article is set in.
+ *
+ * A closed list, not a free string. The editor can only offer fonts the
+ * published article can actually render, and these need nothing loaded
+ * — one is the site's own mono face and the other is a system stack.
+ * Anything else would need a webfont on every article page, or would
+ * silently fall back to something else on publish.
+ *
+ * The stacks themselves are read by CSS — globals.css styles Quill's
+ * `.ql-font-*` classes with them, and the article maps the key to a
+ * utility class. The stored document holds only the KEY.
+ */
+export const FONT_STACKS = {
+  serif: 'ui-serif, Georgia, "Times New Roman", serif',
+  mono: "var(--font-mono)",
+} as const;
+
+export type FontKey = keyof typeof FONT_STACKS;
+
+/**
+ * Narrows an unknown value to a font we actually publish.
+ *
+ * Quill stores the KEY rather than a CSS stack, so this is the guard on
+ * the way in: a `font` attribute pasted in from another document is
+ * dropped unless it names one of ours, and the article can never be
+ * asked to render a face it has no stack for.
+ */
+export function isFontKey(value: unknown): value is FontKey {
+  return typeof value === "string" && value in FONT_STACKS;
+}
+
+export type Span = {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  strike?: boolean;
+  code?: boolean;
+  href?: string;
+  font?: FontKey;
+};
+
+/**
+ * One block of a post body.
+ *
+ * Text-bearing blocks hold `Span[]` rather than a string. Posts written
+ * before that change stored a plain `text`, and `lib/blog-store.ts`
+ * normalises those on read — so this type describes what the app works
+ * with, and the old shape exists only on disk.
+ *
+ * `code` keeps a plain string on purpose: inline formatting inside a
+ * code block would be meaningless, and the editor does not offer it.
+ */
 export type Block =
+  | { type: "p"; spans: Span[] }
+  | { type: "h2"; spans: Span[] }
+  | { type: "h3"; spans: Span[] }
+  | { type: "ul"; items: Span[][] }
+  | { type: "ol"; items: Span[][] }
+  | { type: "quote"; spans: Span[]; cite?: string }
+  | { type: "code"; text: string }
+  | { type: "hr" };
+
+/**
+ * The shape a post body had before spans existed: plain strings, no
+ * inline formatting.
+ *
+ * Kept because the seed below and every row already in
+ * content/posts.json are written this way. `lib/blog-store.ts`
+ * normalises both on read, so nothing past that boundary ever sees it —
+ * and a post saved from /admin is written in the new shape, so the old
+ * one drains away on its own as posts are edited.
+ */
+export type LegacyBlock =
   | { type: "p"; text: string }
   | { type: "h2"; text: string }
   | { type: "ul"; items: string[] }
   | { type: "quote"; text: string; cite?: string }
   | { type: "code"; text: string };
+
+/** A post as it may exist on disk: either shape of block, mixed. */
+export type StoredPost = Omit<Post, "body"> & {
+  body: (Block | LegacyBlock)[];
+};
+
+/** Flattens a block's text, for word counts and anything else that
+ *  wants the words without the formatting. */
+export function blockText(block: Block): string {
+  switch (block.type) {
+    case "ul":
+    case "ol":
+      return block.items
+        .map((item) => item.map((s) => s.text).join(""))
+        .join(" ");
+    case "code":
+      return block.text;
+    case "hr":
+      return "";
+    default:
+      return block.spans.map((s) => s.text).join("");
+  }
+}
+
+/**
+ * Only `http`, `https`, `mailto` and same-page anchors survive.
+ *
+ * Guards against `javascript:` and `data:` URLs, which are the reason a
+ * link in user-authored content is a security question and not just a
+ * formatting one. Returns undefined for anything else, and the renderer
+ * prints the text without a link rather than a broken one.
+ */
+export function safeHref(href: string | undefined): string | undefined {
+  if (!href) return undefined;
+  const value = href.trim();
+  if (value.startsWith("/") || value.startsWith("#")) return value;
+  try {
+    const { protocol } = new URL(value);
+    return ["http:", "https:", "mailto:"].includes(protocol)
+      ? value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export interface Post {
   slug: string;
@@ -64,7 +195,7 @@ export interface Post {
  */
 export type PostSummary = Omit<Post, "body" | "author">;
 
-export const SEED_POSTS: Post[] = [
+export const SEED_POSTS: StoredPost[] = [
   {
     slug: "what-official-whatsapp-access-actually-means",
     title: "What “official WhatsApp access” actually means",
