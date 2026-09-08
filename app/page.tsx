@@ -1,9 +1,9 @@
 import { Nav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
 import { Apps } from "@/components/site/apps";
-import { About } from "@/components/site/about";
+import { Slider } from "@/components/site/slider";
 import { Banner } from "@/components/site/banner";
-import { Questions } from "@/components/site/questions";
+import { Values } from "@/components/site/values";
 import { Statement } from "@/components/site/statement";
 import { Cta } from "@/components/site/cta";
 import { Footer } from "@/components/site/footer";
@@ -29,9 +29,9 @@ export default function Home() {
       <main id="main" className="flex-1">
         <Hero />
         <Apps />
-        <About />
+        <Slider />
         <Banner />
-        <Questions />
+        <Values />
         <Statement />
         <Cta />
       </main>
