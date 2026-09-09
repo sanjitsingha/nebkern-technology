@@ -60,6 +60,22 @@ export const metadata: Metadata = {
   },
   alternates: { canonical: `${SITE_URL}/` },
   robots: { index: true, follow: true },
+  /**
+   * Trustpilot proves domain ownership by reading a meta tag from the
+   * homepage. `verification.other` renders it as
+   * `<meta name="…" content="…">`, which is the shape they look for.
+   *
+   * Named a ONE-TIME id by Trustpilot: it is checked once and then
+   * spent. Safe to delete once the domain shows verified, and worth
+   * doing — a stale verification tag is a claim nobody is checking any
+   * more.
+   */
+  verification: {
+    other: {
+      "trustpilot-one-time-domain-verification-id":
+        "97f2998d-b27d-4a13-8162-68741b649af7",
+    },
+  },
 };
 
 export const viewport: Viewport = {
