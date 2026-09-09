@@ -171,8 +171,13 @@ body {
   --p: 1;
 }
 
+/* The floor is the opacity of a word that has NOT been revealed yet.
+   It reads darker than the number suggests: the type is near-black on a
+   light grey band and set large, and big dark glyphs stay legible at
+   opacities where small ones would have vanished. 0.16 was still too
+   present. Set to 0.10 as specified. */
 .reveal-word {
-  opacity: clamp(0.16, calc((var(--p) * var(--n) - var(--i)) * 0.85), 1);
+  opacity: clamp(0.1, calc((var(--p) * var(--n) - var(--i)) * 0.85), 1);
 }
 
 /* Someone who has asked for less motion gets the sentence, not the
@@ -334,6 +339,24 @@ body {
   font-size: 0.875rem;
   line-height: 1.6;
   color: var(--panel-fg);
+}
+
+/* Images in the editor. Capped so a 2000px asset does not push the
+   toolbar off screen, and given the same rounded corner the article
+   renders, so what the writer sees matches what publishes. */
+.quill-host .ql-editor img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.25rem 0;
+  border-radius: 0.375rem;
+}
+
+/* Quill marks a selected embed with `ql-selected`; without a visible
+   state there is no way to tell an image is about to be deleted. */
+.quill-host .ql-editor img.ql-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .quill-host .ql-editor hr {

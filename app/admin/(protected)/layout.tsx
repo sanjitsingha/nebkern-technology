@@ -28,7 +28,7 @@ export default async function ProtectedLayout({
   return (
     <>
       <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-6 px-5 sm:px-8">
+        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8">
           <Link
             href="/admin/posts"
             className="text-[0.9375rem] font-semibold tracking-[-0.018em] text-ink"
@@ -55,7 +55,7 @@ export default async function ProtectedLayout({
         </div>
       </header>
 
-      <main className="mx-auto max-w-5xl px-5 py-10 sm:px-8 sm:py-12">
+      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
         {children}
       </main>
     </>

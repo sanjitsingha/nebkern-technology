@@ -44,6 +44,7 @@ export type Delta = { ops: DeltaOp[] };
 const MARKS = [
   ["bold", "bold"],
   ["italic", "italic"],
+  ["underline", "underline"],
   ["strike", "strike"],
   ["code", "code"],
 ] as const;
@@ -70,6 +71,7 @@ function merge(spans: Span[]): Span[] {
       prev &&
       prev.bold === span.bold &&
       prev.italic === span.italic &&
+      prev.underline === span.underline &&
       prev.strike === span.strike &&
       prev.code === span.code &&
       prev.href === span.href &&
@@ -96,6 +98,11 @@ function toLines(delta: Delta): Line[] {
       if (spans.length) lines.push({ spans: merge(spans), attrs: {} });
       spans = [];
       if ("divider" in op.insert) lines.push({ spans: [], attrs: { hr: true } });
+      // The image blot carries its own src/alt/caption, so the whole
+      // record is handed through as a line attribute.
+      if ("image" in op.insert) {
+        lines.push({ spans: [], attrs: { image: op.insert.image } });
+      }
       continue;
     }
 
@@ -130,6 +137,24 @@ export function deltaToBlocks(delta: Delta): Block[] {
 
   while (i < lines.length) {
     const { spans, attrs } = lines[i];
+
+    // An image with no src is not a picture, it is a broken box —
+    // drop it rather than store it.
+    if (attrs.image && typeof attrs.image === "object") {
+      const raw = attrs.image as Record<string, unknown>;
+      const src = typeof raw.src === "string" ? raw.src.trim() : "";
+      if (src) {
+        const caption = typeof raw.caption === "string" ? raw.caption.trim() : "";
+        blocks.push({
+          type: "image",
+          src,
+          alt: typeof raw.alt === "string" ? raw.alt : "",
+          ...(caption ? { caption } : {}),
+        });
+      }
+      i += 1;
+      continue;
+    }
 
     if (attrs.hr) {
       blocks.push({ type: "hr" });
@@ -254,6 +279,18 @@ export function blocksToDelta(blocks: Block[]): Delta {
           if (row) ops.push({ insert: row });
           ops.push(newline({ "code-block": true }));
         }
+        break;
+
+      case "image":
+        ops.push({
+          insert: {
+            image: {
+              src: block.src,
+              alt: block.alt,
+              ...(block.caption ? { caption: block.caption } : {}),
+            },
+          },
+        });
         break;
 
       case "hr":

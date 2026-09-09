@@ -156,7 +156,7 @@ export function Apps() {
           {/* 40 / 60. One bordered slab so the coloured panel and the
               app list read as a single object rather than two stacked
               cards. `relative` lifts it above the grey layer. */}
-          <div className="relative grid overflow-hidden rounded-lg border border-line bg-surface lg:grid-cols-[2fr_3fr]">
+          <div className="relative grid overflow-hidden rounded-lg border border-line bg-surface shadow-[8px_8px_0_0_var(--line-soft)] lg:grid-cols-[2fr_3fr]">
             {/* The indigo block is inset, not flush. The gutter is the
               slab's own white showing through on all four sides, which
               makes it read as a card sitting ON the panel rather than a

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
@@ -38,16 +39,28 @@ export async function generateMetadata({
   const post = await getPost(slug);
   if (!post) return { title: "Post not found" };
 
+  // The SEO overrides fall back to the post's own fields, so a writer
+  // who fills neither still gets correct metadata. They exist because
+  // the two audiences want different sentences: a headline that reads
+  // well above an article is often the wrong length for a result page.
+  const title = post.seo?.title?.trim() || post.title;
+  const description = post.seo?.description?.trim() || post.excerpt;
+
   return {
-    title: post.title,
-    description: post.excerpt,
+    title,
+    description,
     alternates: { canonical: `/blog/${post.slug}` },
+    // A post marked noindex is also dropped from the sitemap, in
+    // app/sitemap.ts. The two have to agree: listing a page in the
+    // sitemap while telling crawlers not to index it is a contradiction
+    // Search Console reports as an error rather than ignoring.
+    ...(post.seo?.noindex ? { robots: { index: false, follow: true } } : {}),
     authors: [{ name: post.author.name }],
     openGraph: {
       siteName: SITE.shortName,
       type: "article",
-      title: post.title,
-      description: post.excerpt,
+      title,
+      description,
       url: `/blog/${post.slug}`,
       publishedTime: post.date,
       // Distinct from `publishedTime`: an edit should tell a crawler
@@ -62,8 +75,8 @@ export async function generateMetadata({
     },
     twitter: {
       card: "summary_large_image",
-      title: post.title,
-      description: post.excerpt,
+      title,
+      description,
       ...(post.cover ? { images: [post.cover.src] } : {}),
     },
   };
@@ -106,6 +119,9 @@ function SpanView({ span }: { span: Span }) {
   }
   if (span.bold) node = <strong className="font-semibold text-ink">{node}</strong>;
   if (span.italic) node = <em>{node}</em>;
+  // `underline-offset` so the rule clears the descenders — a browser's
+  // default underline cuts straight through a g or a y.
+  if (span.underline) node = <u className="underline underline-offset-4">{node}</u>;
   if (span.strike) node = <s>{node}</s>;
 
   const href = safeHref(span.href);
@@ -229,6 +245,34 @@ function BlockView({ block }: { block: Block }) {
         </pre>
       );
 
+    case "image":
+      // `figure`/`figcaption` rather than a div and a p: a caption that
+      // is programmatically tied to its image is read as belonging to it
+      // instead of as a stray sentence after it.
+      //
+      // Sized by `fill` inside a 16:9 box for the same reason the cover
+      // is — the build never fetches a remote image, so it has no
+      // intrinsic dimensions to reserve space from, and a bare <img>
+      // would collapse the layout until it loaded.
+      return (
+        <figure className="my-9">
+          <div className="relative aspect-[16/9] overflow-hidden rounded-md bg-surface-2">
+            <Image
+              src={block.src}
+              alt={block.alt}
+              fill
+              sizes="(min-width: 896px) 896px, 100vw"
+              className="object-cover"
+            />
+          </div>
+          {block.caption && (
+            <figcaption className="mt-3 text-[0.875rem] text-muted">
+              {block.caption}
+            </figcaption>
+          )}
+        </figure>
+      );
+
     case "hr":
       return <hr className="my-10 border-0 border-t border-line" />;
 
@@ -306,6 +350,32 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
       </a>
 
       <Nav />
+
+      {/* Article structured data. This is what lets a result carry the
+          author, the dates and the image rather than a bare blue link —
+          the same facts the page already states, in the shape a crawler
+          reads without having to infer them from the markup.
+
+          Serialised with JSON.stringify rather than interpolated: the
+          values are a writer's free text, and a stray quote or a </script>
+          in a title would otherwise break out of the tag. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            headline: post.seo?.title?.trim() || post.title,
+            description: post.seo?.description?.trim() || post.excerpt,
+            datePublished: post.date,
+            dateModified: post.updatedAt ?? post.date,
+            author: { "@type": "Person", name: post.author.name },
+            publisher: { "@type": "Organization", name: SITE.name },
+            mainEntityOfPage: `${SITE.url}/blog/${post.slug}`,
+            ...(post.cover ? { image: post.cover.src } : {}),
+          }),
+        }}
+      />
 
       <main id="main" className="flex-1">
         <article>

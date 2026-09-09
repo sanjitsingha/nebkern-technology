@@ -68,6 +68,7 @@ export type Span = {
   text: string;
   bold?: boolean;
   italic?: boolean;
+  underline?: boolean;
   strike?: boolean;
   code?: boolean;
   href?: string;
@@ -93,6 +94,17 @@ export type Block =
   | { type: "ol"; items: Span[][] }
   | { type: "quote"; spans: Span[]; cite?: string }
   | { type: "code"; text: string }
+  /**
+   * An in-body image.
+   *
+   * `src` must sit on the media host next.config.ts allows, exactly as
+   * the cover does — the optimizer refuses anything else, and a post
+   * pointing elsewhere renders a broken box. `alt` is required rather
+   * than optional: an image with no description is the single most
+   * common accessibility failure in a CMS, and making the field
+   * optional is how it happens.
+   */
+  | { type: "image"; src: string; alt: string; caption?: string }
   | { type: "hr" };
 
 /**
@@ -128,6 +140,10 @@ export function blockText(block: Block): string {
         .join(" ");
     case "code":
       return block.text;
+    case "image":
+      // The caption is prose on the page and counts toward reading
+      // time; alt text is a description of a picture and does not.
+      return block.caption ?? "";
     case "hr":
       return "";
     default:
@@ -196,6 +212,30 @@ export interface Post {
    */
   cover?: { src: string; alt: string };
   author: { name: string; role: string };
+  /**
+   * Search-engine overrides. All optional, and all fall back to the
+   * post's own fields — a writer who fills none gets sensible metadata,
+   * which is why nothing here is required.
+   *
+   * They exist because the two audiences want different sentences. A
+   * title that reads well above an article is often the wrong length
+   * for a result page, and an excerpt written to entice on the index is
+   * not always the sentence you want Google to quote.
+   */
+  seo?: {
+    /** Replaces the title in `<title>` and the OG tags. */
+    title?: string;
+    /** Replaces the excerpt in the meta description. */
+    description?: string;
+    /**
+     * Keeps the post out of search results AND out of the sitemap.
+     *
+     * The two must move together: listing a page in the sitemap while
+     * telling crawlers not to index it is a contradiction that shows up
+     * in Search Console as an error rather than being quietly ignored.
+     */
+    noindex?: boolean;
+  };
   body: Block[];
 }
 

@@ -158,7 +158,7 @@ export function Slider() {
       }}
     >
       <div
-        className="relative mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20"
+        className="relative mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20"
         // Hovering or tabbing into the carousel stops the clock. Content
         // that moves on its own has to be stoppable, and the moment a
         // reader is actually engaging with a slide is the moment it
@@ -185,7 +185,7 @@ export function Slider() {
           onPointerCancel={() => (dragX.current = null)}
           // Horizontal gestures are ours, vertical ones stay with the
           // page — without this a swipe would fight the page scroll.
-          className="grid touch-pan-y sm:px-14 lg:px-20"
+          className="grid touch-pan-y sm:px-10"
         >
           {SLIDES.map((slide, i) => {
             const active = i === index;

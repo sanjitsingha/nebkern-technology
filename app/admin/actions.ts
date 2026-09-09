@@ -93,6 +93,22 @@ function postFromForm(formData: FormData): Post {
     };
   }
 
+  // SEO overrides are only stored when they actually say something.
+  // Writing `{ title: "", description: "" }` for every post would put
+  // empty strings in front of the fallbacks, and an empty override is
+  // not an override — it is a blank meta description.
+  const seoTitle = String(formData.get("seoTitle") ?? "").trim();
+  const seoDescription = String(formData.get("seoDescription") ?? "").trim();
+  const noindex = formData.get("noindex") === "on";
+
+  if (seoTitle || seoDescription || noindex) {
+    post.seo = {
+      ...(seoTitle ? { title: seoTitle } : {}),
+      ...(seoDescription ? { description: seoDescription } : {}),
+      ...(noindex ? { noindex: true } : {}),
+    };
+  }
+
   return post;
 }
 
