@@ -29,6 +29,7 @@ const RESOURCE_ITEMS: MenuItem[] = [
   { label: "Docs", href: LINKS.docs },
   { label: "Blog", href: "/blog" },
   { label: "Newsletter", href: LINKS.newsletter },
+  { label: "Contact", href: "/contact" },
 ];
 
 const MENUS: { label: string; items: MenuItem[] }[] = [
@@ -105,10 +106,15 @@ function MenuRow({
   const shared =
     "flex items-center gap-2.5 px-4 py-2.5 text-[0.9375rem] font-semibold whitespace-nowrap";
 
+  // A same-origin path routes through `Link`; anything starting with a
+  // scheme is another site and stays a plain anchor.
+  const internal = item.href?.startsWith("/");
+  const Anchor = internal ? Link : "a";
+
   return (
     <li>
       {item.href ? (
-        <a
+        <Anchor
           href={item.href}
           onClick={onNavigate}
           // Colour is the whole hover state — no fill behind the row —
@@ -119,7 +125,7 @@ function MenuRow({
           className={`${shared} text-ink-soft transition-colors hover:text-accent`}
         >
           {body}
-        </a>
+        </Anchor>
       ) : (
         <span className={`${shared} text-muted`}>{body}</span>
       )}
@@ -254,7 +260,7 @@ export function Nav() {
                   // it the gap between button and panel counts as
                   // "outside", and the menu closes as the pointer crosses.
                   <div className="absolute top-full left-0 pt-3">
-                    <ul className="min-w-60 rounded-md border border-line bg-surface py-1.5 shadow-[0_10px_28px_-14px_rgb(0_0_0/0.22)]">
+                    <ul className="min-w-60 rounded-sm border border-line bg-surface py-1.5 shadow-[0_10px_28px_-14px_rgb(0_0_0/0.22)]">
                       {items.map((item) => (
                         <MenuRow
                           key={item.label}

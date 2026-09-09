@@ -44,6 +44,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1,
     },
     {
+      url: `${SITE.url}/contact`,
+      lastModified: new Date(),
+      // Company particulars, which move roughly never.
+      changeFrequency: "yearly" as const,
+      priority: 0.7,
+    },
+    {
       url: `${SITE.url}/blog`,
       lastModified: newest ? new Date(newest) : new Date(),
       changeFrequency: "weekly",
