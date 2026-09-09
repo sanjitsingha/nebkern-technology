@@ -251,7 +251,7 @@ export default function ContactPage() {
             because a negative margin moves the box but does not decide
             what paints on top of the coloured section. */}
         <section className="relative">
-          <div className="mx-auto -mt-32 max-w-5xl px-5 sm:px-8">
+          <div className="mx-auto -mt-32 max-w-6xl px-5 sm:px-8">
             <div className="rounded-md border border-line bg-surface p-3 shadow-[0_24px_60px_-32px_rgb(0_0_0/0.35)] sm:p-4">
               {/* 1 / 3, so the single new-here column and the three
                   existing-customer ones each get even width. Stacks
@@ -279,7 +279,7 @@ export default function ContactPage() {
         </section>
 
         <section>
-          <div className="mx-auto max-w-5xl px-5 py-16 sm:px-8 sm:py-20">
+          <div className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-20">
             <h2 className="text-[0.6875rem] font-medium tracking-[0.14em] text-muted uppercase">
               Registered details
             </h2>
