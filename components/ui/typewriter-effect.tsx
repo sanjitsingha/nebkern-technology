@@ -42,7 +42,10 @@ export const TypewriterEffect = ({
         },
       );
     }
-  }, [isInView]);
+    // `animate` is a stable reference from `useAnimate()`, so listing
+    // it satisfies the exhaustive-deps rule without causing the effect
+    // to re-run and replay the animation.
+  }, [isInView, animate]);
 
   const renderWords = () => {
     return (
