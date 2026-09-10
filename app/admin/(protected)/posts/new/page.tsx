@@ -1,41 +1,27 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 
 import { PostForm } from "@/components/admin/post-form";
 
 export const metadata: Metadata = { title: "New post" };
 
 export default function NewPostPage() {
+  // Outside the `(shell)` route group, so there is no admin nav bar and
+  // no page container around this — the form brings its own top bar and
+  // its own column. That is what lets the editor be a full-screen
+  // working surface instead of a page inside a chrome it does not want.
   return (
-    <>
-      <Link
-        href="/admin/posts"
-        className="inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-muted transition-colors hover:text-ink"
-      >
-        <svg
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.6"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="h-3.5 w-3.5"
-          aria-hidden="true"
-        >
-          <path d="M13 8H3M7 4L3 8l4 4" />
-        </svg>
-        All posts
-      </Link>
+    <main>
+      {/* No visible H1 and no standfirst. The form's title field is the
+          heading — it sits at the top of the writing column at 2rem,
+          carrying "Untitled" until it is renamed — and a static "New
+          post" above it was a second, competing title that said less.
 
-      <h1 className="mt-5 text-[1.75rem] font-semibold tracking-[-0.024em] text-ink">
-        New post
-      </h1>
-      <p className="mt-1.5 text-[0.9375rem] text-muted">
-        The body is stored as structured blocks, not HTML — so the article page
-        keeps control of how every heading, quote and list renders.
-      </p>
+          It stays as screen-reader text rather than going entirely: the
+          page still needs one heading to be navigable, and "New post" is
+          what it is. Same move /blog makes with its own masthead gone. */}
+      <h1 className="sr-only">New post</h1>
 
       <PostForm />
-    </>
+    </main>
   );
 }

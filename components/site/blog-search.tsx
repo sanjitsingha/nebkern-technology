@@ -43,10 +43,13 @@ function LeadCard({ post }: { post: PostSummary }) {
 
           21:9 rather than the thumbnail's 16:9. The same ratio that is
           unremarkable at 208px wide is a 558px wall at 990px, pushing
-          the headline it introduces off the fold. */}
+          the headline it introduces off the fold.
+
+          Renders nothing at all until the post has a cover, and its
+          `mb-7` goes with it — so the card opens on its meta line
+          rather than on a space where a picture is not. */}
       <PostCover
         cover={post.cover}
-        tag={post.tag}
         ratio="21 / 9"
         sizes="(min-width: 1152px) 1024px, (min-width: 640px) calc(100vw - 8rem), calc(100vw - 6.5rem)"
         className="mb-7"

@@ -207,10 +207,15 @@ export function BodyEditor({
     "w-full rounded-md border border-line bg-surface px-3 py-2 text-[0.875rem] text-ink outline-none placeholder:text-muted focus:border-accent";
 
   return (
-    // `quill-host` scopes the theme overrides in globals.css. The border
-    // sits on this wrapper rather than on Quill's own containers, so the
-    // toolbar and the writing area read as one control.
-    <div className="quill-host overflow-hidden rounded-md border border-line bg-surface focus-within:border-accent">
+    // `quill-host` scopes the theme overrides in globals.css.
+    //
+    // No border and no background on this wrapper any more. It used to
+    // box the toolbar and the writing area together as one control;
+    // now the toolbar carries its own border and the writing area has
+    // none, so the text sits directly on the page the way the title
+    // above it does. `overflow-hidden` and `rounded-md` went with the
+    // border — there is no longer a corner to clip anything against.
+    <div className="quill-host">
       <div ref={host} />
 
       {draft && (

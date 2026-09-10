@@ -3,15 +3,19 @@ import Image from "next/image";
 import type { Post } from "@/lib/blog";
 
 /**
- * A post's cover image, or the placeholder that stands in until there
- * is one.
+ * A post's cover image, or nothing at all.
  *
- * The placeholder is deliberately not a photograph. A stock image in
- * every slot would look finished and quietly ship as real; a hatched
- * block with the post's tag on it reads as "pending" at a glance, which
- * is what it is. Nothing changes at the call sites when the real
- * pictures arrive — set `cover` on the post and the same component
- * renders it.
+ * This used to render a hatched placeholder carrying the post's tag
+ * whenever `cover` was unset — a standing "pending" block that was
+ * honest about being unfinished, but which every post on the site was
+ * showing, so the blog read as a page of empty frames rather than a
+ * page of writing. It renders `null` now: a post with no picture simply
+ * has no picture, and the layout closes up around it.
+ *
+ * Nothing changes at the call sites when the real pictures arrive — set
+ * `cover` on the post and the same component renders it. The call sites
+ * do have to cope with a null return, which is why each one asks
+ * `post.cover` before opening a slot for it.
  *
  * Covers are expected on the media host the product lockups already use
  * (`media.instant.nebkern.com/assets/**`), which next.config.ts allows.
@@ -19,13 +23,11 @@ import type { Post } from "@/lib/blog";
  */
 export function PostCover({
   cover,
-  tag,
   sizes,
   ratio = "16 / 9",
   className = "",
 }: {
   cover: Post["cover"];
-  tag: string;
   /** Required whenever the cover is not full-width — `fill` images have
    *  no intrinsic size for the browser to pick a source from. */
   sizes: string;
@@ -39,37 +41,20 @@ export function PostCover({
   ratio?: string;
   className?: string;
 }) {
+  if (!cover) return null;
+
   return (
     <div
-      className={`relative flex items-center justify-center overflow-hidden rounded-md bg-surface-2 ${className}`}
+      className={`relative overflow-hidden rounded-md bg-surface-2 ${className}`}
       style={{ aspectRatio: ratio }}
     >
-      {cover ? (
-        <Image
-          src={cover.src}
-          alt={cover.alt}
-          fill
-          sizes={sizes}
-          className="object-cover"
-        />
-      ) : (
-        <>
-          {/* A fine diagonal hatch in the site's own line colour. Quiet
-              enough to sit behind a card without competing, obvious
-              enough that nobody mistakes it for artwork. */}
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage:
-                "repeating-linear-gradient(135deg, var(--line-soft) 0 1px, transparent 1px 11px)",
-            }}
-            aria-hidden="true"
-          />
-          <span className="relative text-[0.6875rem] font-medium tracking-[0.14em] text-muted uppercase">
-            {tag}
-          </span>
-        </>
-      )}
+      <Image
+        src={cover.src}
+        alt={cover.alt}
+        fill
+        sizes={sizes}
+        className="object-cover"
+      />
     </div>
   );
 }

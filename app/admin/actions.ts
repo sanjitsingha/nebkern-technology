@@ -9,14 +9,32 @@ import {
   destroySession,
   hasValidSession,
 } from "@/lib/admin-auth";
-import type { Block, Post } from "@/lib/blog";
+import { DEFAULT_TITLE, slugify, type Block, type Post } from "@/lib/blog";
 import {
   createPost,
   deletePost,
+  getPost,
   readMinutes,
-  slugify,
   updatePost,
 } from "@/lib/blog-store";
+
+/**
+ * Today, as `YYYY-MM-DD`, in Indian time.
+ *
+ * Not `toISOString().slice(0, 10)`, which is UTC: a post written at any
+ * time before 05:30 IST would be stamped with the previous day's date.
+ * The company and its readers are both in one timezone, so the honest
+ * answer is that timezone rather than the server's — on Vercel the
+ * server is UTC and would be wrong every night.
+ *
+ * `en-CA` because that locale's short date format IS `YYYY-MM-DD`, which
+ * is the shape the rest of the site parses.
+ */
+function today(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+  }).format(new Date());
+}
 
 /** What `useActionState` carries back to the form. `null` is the
  *  untouched state; a string is the message to show above the fields. */
@@ -62,7 +80,12 @@ export async function logoutAction() {
 /** Pull a post out of the form. The body arrives as JSON because the
  *  editor's value is structured, and a form field is a string. */
 function postFromForm(formData: FormData): Post {
-  const title = String(formData.get("title") ?? "").trim();
+  // The editor shows "Untitled" as placeholder text, and a placeholder
+  // is never submitted — so an untouched title arrives here as an empty
+  // string. Substituting it is what makes "save now, name it later"
+  // work instead of failing validation on the field the writer has
+  // deliberately not filled in yet.
+  const title = String(formData.get("title") ?? "").trim() || DEFAULT_TITLE;
   const body = JSON.parse(String(formData.get("body") ?? "[]")) as Block[];
   const coverSrc = String(formData.get("coverSrc") ?? "").trim();
 
@@ -70,7 +93,11 @@ function postFromForm(formData: FormData): Post {
     slug: slugify(String(formData.get("slug") ?? "") || title),
     title,
     excerpt: String(formData.get("excerpt") ?? "").trim(),
-    date: String(formData.get("date") ?? "").trim(),
+    // Not a field any more. A new post is dated the day it is created,
+    // and `savePostAction` puts the original date back when this is an
+    // edit — so the published date is the day it first existed and
+    // never moves, while `updatedAt` below carries every change.
+    date: today(),
     tag: String(formData.get("tag") ?? "").trim(),
     author: {
       name: String(formData.get("authorName") ?? "").trim(),
@@ -122,10 +149,31 @@ export async function savePostAction(
   // Empty on create; the slug being edited on update.
   const originalSlug = String(formData.get("originalSlug") ?? "");
 
-  if (!post.title) return { error: "A post needs a title." };
+  // Which button was pressed. A submit button's name/value is only
+  // included in the form data when it is the one that submitted the
+  // form, so this is how the two actions stay one action.
+  const draft = formData.get("intent") === "draft";
+  if (draft) post.draft = true;
+
+  // An edit keeps the date the post was first published. `postFromForm`
+  // stamps today unconditionally, which is right for a new post and
+  // would silently re-date an old one — an article from March becoming
+  // today's news because somebody fixed a typo in it.
+  if (originalSlug) {
+    const existing = await getPost(originalSlug);
+    if (existing) post.date = existing.date;
+  }
+
+  // A draft is held to a lower bar on purpose. The whole point of one is
+  // to save unfinished work and come back, so demanding a body would
+  // reject exactly the post a writer most wants to keep — the one they
+  // have not written yet. It still needs somewhere to live, which is
+  // what the title and the slug are.
+  // No "needs a title" check any more — `postFromForm` guarantees one.
   if (!post.slug) return { error: "That title does not make a usable URL." };
-  if (!post.date) return { error: "A post needs a date." };
-  if (!post.body.length) return { error: "A post needs a body." };
+  if (!draft && !post.body.length) {
+    return { error: "A post needs a body before it can be published." };
+  }
 
   try {
     if (originalSlug) {
@@ -143,7 +191,12 @@ export async function savePostAction(
   }
 
   revalidateBlog(originalSlug || post.slug, post.slug);
-  redirect("/admin/posts");
+  // A draft save means "not finished", so it returns to the editor it
+  // was saved from and the next save carries on from there. It goes to
+  // the post's own slug rather than back to /new, which would reopen an
+  // empty form and try to create the same post a second time.
+  // Publishing is a finishing move, so that goes back to the list.
+  redirect(draft ? `/admin/posts/${post.slug}` : "/admin/posts");
 }
 
 export async function deletePostAction(formData: FormData) {

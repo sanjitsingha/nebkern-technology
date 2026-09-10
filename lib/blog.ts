@@ -173,6 +173,41 @@ export function safeHref(href: string | undefined): string | undefined {
   }
 }
 
+/**
+ * What an unnamed post is called.
+ *
+ * Lives here rather than in the form because two places need to agree on
+ * it: the editor shows it as placeholder text, and the save action
+ * substitutes it when the field comes back empty. A placeholder is not
+ * submitted — that is the whole difference between it and a value — so
+ * without the server half, saving an untouched title would be a
+ * validation error instead of a post called "Untitled".
+ */
+export const DEFAULT_TITLE = "Untitled";
+
+/**
+ * Lowercase, hyphenated, no punctuation.
+ *
+ * Derived from the title so a writer never has to think about URLs, but
+ * stored on the post so renaming a title later cannot silently break a
+ * published link.
+ *
+ * It lives HERE rather than in blog-store.ts, where it used to, because
+ * the editor mirrors the title into the slug field as you type and that
+ * happens in the browser. blog-store imports `node:fs`, so a Client
+ * Component cannot import from it at all — deliberately. This function
+ * is pure string work with no such dependency, so this is where it
+ * belongs, and both halves now derive a slug the same way by
+ * construction rather than by two implementations agreeing.
+ */
+export function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
 export interface Post {
   slug: string;
   title: string;
@@ -198,9 +233,11 @@ export interface Post {
   /**
    * Cover image, shown on the index and above the article.
    *
-   * Optional while the photographs are outstanding — a post without one
-   * renders a hatched placeholder carrying its tag, so the layout is
-   * already the real layout. Expected shape once filled:
+   * Optional, and genuinely optional: a post without one shows no
+   * picture at all, and the layout closes up around the gap. This used
+   * to draw a hatched placeholder instead, which meant every post on a
+   * site with no photographs yet carried an empty frame. Expected shape
+   * once filled:
    *
    *   cover: {
    *     src: "https://media.instant.nebkern.com/assets/blog/<name>.webp",
@@ -211,6 +248,20 @@ export interface Post {
    * so the crop is the layout's and the build never needs to fetch it.
    */
   cover?: { src: string; alt: string };
+  /**
+   * Unpublished work in progress.
+   *
+   * Optional, and absent means published — so every post written before
+   * drafts existed stays published without a migration, and a hand-edited
+   * `posts.json` does not have to carry the field.
+   *
+   * A draft is invisible to the public site: it is absent from the index,
+   * the sitemap, llms.txt and the prerendered routes, and its own URL
+   * returns a 404. The only place it exists is /admin. There is
+   * deliberately no preview link — a shareable URL for an unfinished post
+   * is a different feature, and a half-implemented one is how drafts leak.
+   */
+  draft?: boolean;
   author: { name: string; role: string };
   /**
    * Search-engine overrides. All optional, and all fall back to the

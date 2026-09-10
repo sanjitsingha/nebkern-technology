@@ -36,14 +36,19 @@ export function PostRow({ post }: { post: PostSummary }) {
     <li>
       <Link
         href={`/blog/${post.slug}`}
-        className="group grid gap-5 py-8 lg:grid-cols-[1fr_20rem] lg:items-start lg:gap-10"
+        // The second column is opened only when there is a picture to
+        // put in it. `PostCover` renders nothing without one, and a
+        // fixed `1fr 20rem` would then hold 20rem of empty gutter open
+        // beside the text for the sake of an element that is not there.
+        className={`group grid gap-5 py-8 ${
+          post.cover ? "lg:grid-cols-[1fr_20rem] lg:items-start lg:gap-10" : ""
+        }`}
       >
         {/* First in the DOM so the picture leads the stacked row on a
             phone; `lg:order-last` sends it to the right-hand column once
             the row goes two-up. */}
         <PostCover
           cover={post.cover}
-          tag={post.tag}
           sizes="(min-width: 1024px) 320px, calc(100vw - 2.5rem)"
           className="lg:order-last"
         />

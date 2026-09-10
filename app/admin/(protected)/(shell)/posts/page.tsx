@@ -8,7 +8,11 @@ import { listPosts } from "@/lib/blog-store";
 export const metadata: Metadata = { title: "Posts" };
 
 export default async function PostsPage() {
+  // `listPosts`, not `listPublishedPosts`: this is the one screen where
+  // a draft is supposed to show up. Everything reader-facing uses the
+  // published list.
   const posts = await listPosts();
+  const drafts = posts.filter((post) => post.draft).length;
 
   return (
     <>
@@ -18,7 +22,9 @@ export default async function PostsPage() {
             Posts
           </h1>
           <p className="mt-1 text-[0.9375rem] text-muted">
-            {posts.length} {posts.length === 1 ? "post" : "posts"}
+            {posts.length - drafts}{" "}
+            {posts.length - drafts === 1 ? "post" : "posts"} published
+            {drafts > 0 && <> · {drafts} in draft</>}
           </p>
         </div>
 
@@ -42,18 +48,34 @@ export default async function PostsPage() {
               className="flex flex-wrap items-center gap-x-5 gap-y-3 px-5 py-4"
             >
               <div className="min-w-0 flex-1">
-                <Link
-                  href={`/admin/posts/${post.slug}`}
-                  className="text-[1.0625rem] font-semibold tracking-[-0.018em] text-ink transition-colors hover:text-accent"
-                >
-                  {post.title}
-                </Link>
+                <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                  <Link
+                    href={`/admin/posts/${post.slug}`}
+                    className="text-[1.0625rem] font-semibold tracking-[-0.018em] text-ink transition-colors hover:text-accent"
+                  >
+                    {post.title}
+                  </Link>
+
+                  {/* Only drafts are badged. Marking the published ones
+                      too would put a label on every row and leave the
+                      one state worth spotting no easier to spot. */}
+                  {post.draft && (
+                    <span className="border border-warning/40 bg-warning/10 px-1.5 py-0.5 text-[0.6875rem] font-medium tracking-[0.06em] text-ink uppercase">
+                      Draft
+                    </span>
+                  )}
+                </span>
+
                 <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.8125rem] text-muted">
                   <span className="font-medium text-accent">{post.tag}</span>
                   <span aria-hidden="true">·</span>
                   <time dateTime={post.date}>{formatDate(post.date)}</time>
                   <span aria-hidden="true">·</span>
-                  <span className="font-mono">/blog/{post.slug}</span>
+                  {/* A draft has no live URL, so showing one that 404s
+                      would be a link to nowhere dressed as an address. */}
+                  <span className="font-mono">
+                    {post.draft ? "not published" : `/blog/${post.slug}`}
+                  </span>
                 </p>
               </div>
 

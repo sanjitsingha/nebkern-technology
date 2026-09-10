@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { Nav } from "@/components/site/nav";
@@ -20,13 +19,15 @@ import { SITE } from "@/lib/site";
 /** Keys map to utilities rather than inline styles, so a body can never
  *  put an arbitrary font-family on the page. */
 const FONT_CLASS = { serif: "font-serif", mono: "font-mono" } as const;
-import { getPost, listPosts } from "@/lib/blog-store";
+import { getPost, listPublishedPosts } from "@/lib/blog-store";
 
-/** Every post is known at build time, so every post is prerendered.
+/** Every published post is known at build time, so every published post
+ *  is prerendered. Drafts are absent, and the page below 404s them, so a
+ *  draft is not reachable by guessing its URL either.
  *  Once the data comes from Supabase this same function does the same
  *  job — it is already async. */
 export async function generateStaticParams() {
-  const posts = await listPosts();
+  const posts = await listPublishedPosts();
   return posts.map((p) => ({ slug: p.slug }));
 }
 
@@ -37,7 +38,10 @@ export async function generateMetadata({
   // before any property is read.
   const { slug } = await params;
   const post = await getPost(slug);
-  if (!post) return { title: "Post not found" };
+  // A draft is treated exactly as a missing post here, so its title
+  // cannot leak into a tab, a share card or a crawler's index via a
+  // guessed URL. The page itself 404s for the same reason.
+  if (!post || post.draft) return { title: "Post not found" };
 
   // The SEO overrides fall back to the post's own fields, so a writer
   // who fills neither still gets correct metadata. They exist because
@@ -117,11 +121,13 @@ function SpanView({ span }: { span: Span }) {
       </code>
     );
   }
-  if (span.bold) node = <strong className="font-semibold text-ink">{node}</strong>;
+  if (span.bold)
+    node = <strong className="font-semibold text-ink">{node}</strong>;
   if (span.italic) node = <em>{node}</em>;
   // `underline-offset` so the rule clears the descenders — a browser's
   // default underline cuts straight through a g or a y.
-  if (span.underline) node = <u className="underline underline-offset-4">{node}</u>;
+  if (span.underline)
+    node = <u className="underline underline-offset-4">{node}</u>;
   if (span.strike) node = <s>{node}</s>;
 
   const href = safeHref(span.href);
@@ -132,9 +138,7 @@ function SpanView({ span }: { span: Span }) {
         href={href}
         // `noreferrer` alongside `noopener`: the article links out to
         // sites we do not control.
-        {...(external
-          ? { target: "_blank", rel: "noopener noreferrer" }
-          : {})}
+        {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
         className="font-medium text-accent underline underline-offset-4 transition-colors hover:text-accent-hover"
       >
         {node}
@@ -157,7 +161,13 @@ function Spans({ spans }: { spans: Span[] }) {
 
 /** A list item, shared by the bullet and numbered lists so the two
  *  cannot drift apart. */
-function ListItem({ spans, marker }: { spans: Span[]; marker: React.ReactNode }) {
+function ListItem({
+  spans,
+  marker,
+}: {
+  spans: Span[];
+  marker: React.ReactNode;
+}) {
   return (
     <li className="flex gap-3 text-[1.0625rem] leading-relaxed text-ink-soft">
       {marker}
@@ -289,10 +299,13 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
   const { slug } = await params;
   const post = await getPost(slug);
 
-  // A slug that does not resolve is a 404, not an empty page.
-  if (!post) notFound();
+  // A slug that does not resolve is a 404, not an empty page — and so is
+  // a draft. `generateStaticParams` already omits drafts, but this route
+  // still renders unknown slugs on demand, so without this check a draft
+  // would be served to anyone who typed its URL.
+  if (!post || post.draft) notFound();
 
-  const others = (await listPosts())
+  const others = (await listPublishedPosts())
     .filter((p) => p.slug !== post.slug)
     .slice(0, 2);
 
@@ -310,8 +323,11 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
   const articleJsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
-    headline: post.title,
-    description: post.excerpt,
+    // The same fallback chain `generateMetadata` uses. A post whose SEO
+    // panel overrides the title should not then contradict itself in its
+    // own structured data.
+    headline: post.seo?.title?.trim() || post.title,
+    description: post.seo?.description?.trim() || post.excerpt,
     datePublished: post.date,
     dateModified: post.updatedAt ?? post.date,
     author: {
@@ -319,8 +335,16 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
       name: post.author.name,
       jobTitle: post.author.role,
     },
-    publisher: { "@type": "Organization", name: SITE.name, url: `${SITE.url}/` },
-    isPartOf: { "@type": "Blog", name: `${SITE.shortName} blog`, url: `${SITE.url}/blog` },
+    publisher: {
+      "@type": "Organization",
+      name: SITE.name,
+      url: `${SITE.url}/`,
+    },
+    isPartOf: {
+      "@type": "Blog",
+      name: `${SITE.shortName} blog`,
+      url: `${SITE.url}/blog`,
+    },
     // Tells a crawler which URL is the article's own, independently of
     // the one it happened to arrive on.
     mainEntityOfPage: {
@@ -328,7 +352,9 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
       "@id": `${SITE.url}/blog/${post.slug}`,
     },
     keywords: post.tag,
-    wordCount: post.body.map(blockText).join(" ").split(/s+/).filter(Boolean)
+    // `\s+`, not `s+`. The missing backslash split on the LETTER s, so
+    // the count was words-plus-every-s rather than words.
+    wordCount: post.body.map(blockText).join(" ").split(/\s+/).filter(Boolean)
       .length,
     ...(post.cover ? { image: [post.cover.src] } : {}),
   };
@@ -351,32 +377,6 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
 
       <Nav />
 
-      {/* Article structured data. This is what lets a result carry the
-          author, the dates and the image rather than a bare blue link —
-          the same facts the page already states, in the shape a crawler
-          reads without having to infer them from the markup.
-
-          Serialised with JSON.stringify rather than interpolated: the
-          values are a writer's free text, and a stray quote or a </script>
-          in a title would otherwise break out of the tag. */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
-            "@context": "https://schema.org",
-            "@type": "BlogPosting",
-            headline: post.seo?.title?.trim() || post.title,
-            description: post.seo?.description?.trim() || post.excerpt,
-            datePublished: post.date,
-            dateModified: post.updatedAt ?? post.date,
-            author: { "@type": "Person", name: post.author.name },
-            publisher: { "@type": "Organization", name: SITE.name },
-            mainEntityOfPage: `${SITE.url}/blog/${post.slug}`,
-            ...(post.cover ? { image: post.cover.src } : {}),
-          }),
-        }}
-      />
-
       <main id="main" className="flex-1">
         <article>
           <header className="border-b border-line-soft">
@@ -388,24 +388,11 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
                 "Keep reading" list all read this width), so the page
                 stays one measure rather than three. */}
             <div className="mx-auto max-w-4xl px-5 pt-12 pb-12 sm:px-8 sm:pt-16 sm:pb-14">
-              <Link
-                href="/blog"
-                className="inline-flex items-center gap-1.5 text-[0.875rem] font-medium text-muted transition-colors hover:text-ink"
-              >
-                <svg
-                  viewBox="0 0 16 16"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-3.5 w-3.5"
-                  aria-hidden="true"
-                >
-                  <path d="M13 8H3M7 4L3 8l4 4" />
-                </svg>
-                All posts
-              </Link>
+              {/* The "← All posts" link that used to open this column is
+                  gone. The nav above carries Blog on every page, so it
+                  was a second door to the same place, sitting in the one
+                  position on the page that should belong to the
+                  headline. */}
 
               {/* `text-pretty`, not `text-balance`. Balance finds the
                   NARROWEST width that keeps the headline on the same
@@ -413,7 +400,7 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
                   widening the container moved this heading not at all.
                   Pretty fills the measure and only guards the last line
                   against a single-word orphan. */}
-              <h1 className="display mt-7 text-[clamp(2rem,4vw,3rem)] font-medium text-ink text-pretty">
+              <h1 className="display text-[clamp(2rem,4vw,3rem)] font-medium text-ink text-pretty">
                 {post.title}
               </h1>
 
@@ -463,20 +450,26 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
           {/* Between the byline and the first paragraph, in the body's
               own column rather than full-bleed — a cover wider than the
               text it introduces reads as a banner for the page instead
-              of for the post. */}
-          <div className="mx-auto max-w-4xl px-5 pt-10 sm:px-8 sm:pt-12">
-            {/* 21:9, the same ratio the index's lead card uses. That
-                keeps one shape for a cover running the full width of a
-                column and 16:9 for the thumbnails — at this measure 16:9
-                was a 432px block sitting between the byline and the
-                first sentence. */}
-            <PostCover
-              cover={post.cover}
-              tag={post.tag}
-              ratio="21 / 9"
-              sizes="(min-width: 768px) 768px, calc(100vw - 2.5rem)"
-            />
-          </div>
+              of for the post.
+
+              The guard is on the wrapper, not just inside `PostCover`.
+              The component already renders nothing without a cover, but
+              this padded div would still open `pt-10` of space above a
+              body that then began with no picture in it. */}
+          {post.cover && (
+            <div className="mx-auto max-w-4xl px-5 pt-10 sm:px-8 sm:pt-12">
+              {/* 21:9, the same ratio the index's lead card uses. That
+                  keeps one shape for a cover running the full width of a
+                  column and 16:9 for the thumbnails — at this measure
+                  16:9 was a 432px block sitting between the byline and
+                  the first sentence. */}
+              <PostCover
+                cover={post.cover}
+                ratio="21 / 9"
+                sizes="(min-width: 768px) 768px, calc(100vw - 2.5rem)"
+              />
+            </div>
+          )}
 
           <div className="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
             {post.body.map((block, i) => (

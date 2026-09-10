@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { listPosts } from "@/lib/blog-store";
+import { listPublishedPosts } from "@/lib/blog-store";
 import { SITE } from "@/lib/site";
 
 /**
@@ -22,11 +22,16 @@ import { SITE } from "@/lib/site";
  * lastmod would tell a crawler nothing had changed after an edit.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Drafts never reach here — `listPublishedPosts` has already dropped
+  // them, and their URLs 404 anyway.
+  //
   // A post marked noindex is excluded here as well as carrying a
   // noindex tag on the page itself. Listing a page in the sitemap while
   // telling crawlers not to index it is a contradiction Search Console
   // reports as an error, so the two must agree.
-  const posts = (await listPosts()).filter((post) => !post.seo?.noindex);
+  const posts = (await listPublishedPosts()).filter(
+    (post) => !post.seo?.noindex,
+  );
 
   // The blog index changes whenever any post does, so it inherits the
   // newest post's timestamp rather than carrying a build date that

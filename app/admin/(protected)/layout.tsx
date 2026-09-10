@@ -1,11 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { logoutAction } from "@/app/admin/actions";
 import { hasValidSession } from "@/lib/admin-auth";
 
 /**
- * The authorisation boundary.
+ * The authorisation boundary, and nothing else.
  *
  * `proxy.ts` only checks that a session cookie EXISTS — it runs on the
  * Edge, where the HMAC that makes the cookie mean anything cannot be
@@ -17,6 +15,13 @@ import { hasValidSession } from "@/lib/admin-auth";
  * their `/admin/posts` URLs while `/admin/login` stays outside the
  * check — nesting the login under the same layout would redirect it to
  * itself forever.
+ *
+ * The header and the page container used to live here too. They moved
+ * down into `(shell)/layout.tsx` when the editor grew its own top bar:
+ * the editor is a full-screen working surface with its own chrome, and
+ * a layout that renders a nav bar for every descendant cannot let one
+ * of them opt out. Auth is the only thing genuinely common to all of
+ * them, so auth is the only thing left at this level.
  */
 export default async function ProtectedLayout({
   children,
@@ -25,39 +30,5 @@ export default async function ProtectedLayout({
 }) {
   if (!(await hasValidSession())) redirect("/admin/login");
 
-  return (
-    <>
-      <header className="border-b border-line bg-surface">
-        <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8">
-          <Link
-            href="/admin/posts"
-            className="text-[0.9375rem] font-semibold tracking-[-0.018em] text-ink"
-          >
-            Nebkern admin
-          </Link>
-
-          <div className="flex items-center gap-5">
-            <Link
-              href="/blog"
-              className="text-[0.875rem] text-muted transition-colors hover:text-ink"
-            >
-              View blog
-            </Link>
-            <form action={logoutAction}>
-              <button
-                type="submit"
-                className="text-[0.875rem] text-muted transition-colors hover:text-ink"
-              >
-                Sign out
-              </button>
-            </form>
-          </div>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-8 sm:py-12">
-        {children}
-      </main>
-    </>
-  );
+  return <>{children}</>;
 }

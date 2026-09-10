@@ -19,19 +19,18 @@ export default async function EditPostPage({
   const post = await getPost(slug);
   if (!post) notFound();
 
+  // Outside `(shell)`, like the new-post page: the form carries the top
+  // bar. The "Edit post" heading and the slug line that used to sit here
+  // are gone with it — the title field states the title, and the slug
+  // has its own field in the rail.
   return (
-    <>
-      <h1 className="text-[1.5rem] font-semibold tracking-[-0.022em] text-ink">
-        Edit post
-      </h1>
-      <p className="mt-1 font-mono text-[0.8125rem] text-muted">
-        /blog/{post.slug}
-      </p>
+    <main>
+      <h1 className="sr-only">Edit {post.title}</h1>
 
       {/* Keyed by slug so navigating between two posts rebuilds the
           form and the editor rather than reusing one seeded with the
           previous post's body. */}
       <PostForm key={post.slug} post={post} />
-    </>
+    </main>
   );
 }

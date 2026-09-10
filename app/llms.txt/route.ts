@@ -1,4 +1,4 @@
-import { listPosts } from "@/lib/blog-store";
+import { listPublishedPosts } from "@/lib/blog-store";
 import { PRODUCTS, STATUS_LABEL } from "@/lib/products";
 import { LINKS, SITE } from "@/lib/site";
 
@@ -23,7 +23,9 @@ import { LINKS, SITE } from "@/lib/site";
 export const dynamic = "force-static";
 
 export async function GET() {
-  const posts = await listPosts();
+  // Published only. A draft listed here would be handed to a summariser
+  // as a real article, at a URL that returns a 404.
+  const posts = await listPublishedPosts();
 
   const products = PRODUCTS.map((product) => {
     const status = product.statusLabel ?? STATUS_LABEL[product.status];
@@ -32,7 +34,10 @@ export async function GET() {
   }).join("\n");
 
   const articles = posts
-    .map((post) => `- [${post.title}](${SITE.url}/blog/${post.slug}): ${post.excerpt}`)
+    .map(
+      (post) =>
+        `- [${post.title}](${SITE.url}/blog/${post.slug}): ${post.excerpt}`,
+    )
     .join("\n");
 
   const body = `# ${SITE.name}

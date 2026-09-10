@@ -105,17 +105,6 @@ async function writeAll(posts: Post[]): Promise<void> {
   await fs.writeFile(FILE, JSON.stringify(posts, null, 2) + "\n", "utf8");
 }
 
-/** Lowercase, hyphenated, no punctuation. Derived from the title so a
- *  writer never has to think about URLs, but stored on the post so
- *  renaming a title later cannot silently break a published link. */
-export function slugify(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 80);
-}
-
 /** Roughly 200 words a minute, floored at 1 — a "0 min read" reads as a
  *  bug even when the arithmetic is right. */
 export function readMinutes(post: Pick<Post, "body">): number {
@@ -129,8 +118,23 @@ export function readMinutes(post: Pick<Post, "body">): number {
   return Math.max(1, Math.round(words / 200));
 }
 
+/** Everything, drafts included. This is the ADMIN view — /admin/posts is
+ *  the one place an unpublished post is supposed to appear. */
 export async function listPosts(): Promise<Post[]> {
   return sorted(await readAll());
+}
+
+/**
+ * Published posts only. This is the PUBLIC view.
+ *
+ * Every reader-facing surface goes through this rather than filtering
+ * for itself: the index, the sitemap, llms.txt and the prerendered
+ * article routes each used to call `listPosts` directly, and a draft
+ * leaks the moment one of them is added and forgets the filter. Making
+ * the safe call the easy one is the point.
+ */
+export async function listPublishedPosts(): Promise<Post[]> {
+  return sorted((await readAll()).filter((p) => !p.draft));
 }
 
 export async function getPost(slug: string): Promise<Post | undefined> {

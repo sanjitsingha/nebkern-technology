@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/site/nav";
 import { Footer } from "@/components/site/footer";
 import { BlogSearch } from "@/components/site/blog-search";
-import { listPosts } from "@/lib/blog-store";
+import { listPublishedPosts } from "@/lib/blog-store";
 import { SITE } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -13,11 +13,16 @@ export const metadata: Metadata = {
 };
 
 export default async function BlogIndex() {
-  const posts = await listPosts();
+  const posts = await listPublishedPosts();
 
-  // Projected explicitly rather than passed whole: only these six fields
+  // Projected explicitly rather than passed whole: only these fields
   // cross into the Client Component, so the article bodies stay on the
   // server where they are already being rendered by /blog/[slug].
+  //
+  // `cover` was missing from this list. It went unnoticed while an unset
+  // cover drew a placeholder — the index looked the same either way —
+  // but now that no cover means no picture, leaving it out would show a
+  // post's cover on its article page and nowhere on the index.
   const summaries = posts.map((post) => ({
     slug: post.slug,
     title: post.title,
@@ -25,6 +30,7 @@ export default async function BlogIndex() {
     date: post.date,
     readMinutes: post.readMinutes,
     tag: post.tag,
+    cover: post.cover,
   }));
 
   return (
