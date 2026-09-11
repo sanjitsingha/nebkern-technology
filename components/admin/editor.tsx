@@ -43,6 +43,9 @@ const TOOLBAR = [
   ["blockquote", "code-block"],
   ["image", "divider"],
   ["undo", "redo", "clean"],
+  // A group of its own, so Quill's separator sets it apart: every other
+  // control here acts on the selection, and this one acts on the post.
+  ["settings"],
 ];
 
 /** The only host the image optimizer is configured to fetch from, in
@@ -57,9 +60,16 @@ const EMPTY_DRAFT: ImageDraft = { src: "", alt: "", caption: "" };
 export function BodyEditor({
   value,
   onChange,
+  onSettings,
 }: {
   value: Block[];
   onChange: (blocks: Block[]) => void;
+  /** Opens the post's settings. The button lives in Quill's toolbar,
+   *  but the fields it opens belong to the form around this editor, so
+   *  the editor only reports the click. Required rather than optional:
+   *  a settings button that does nothing when pressed is worse than no
+   *  button. */
+  onSettings: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const quill = useRef<InstanceType<typeof import("quill").default> | null>(
@@ -74,12 +84,14 @@ export function BodyEditor({
   const [draft, setDraft] = useState<ImageDraft | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
 
-  // The callback and the seed value are held in refs so the effect that
-  // builds Quill can run exactly once. A dependency on either would
+  // The callbacks and the seed value are held in refs so the effect that
+  // builds Quill can run exactly once. A dependency on any of them would
   // rebuild the editor on every keystroke, destroying the selection and
   // the undo history with it.
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
+  const onSettingsRef = useRef(onSettings);
+  onSettingsRef.current = onSettings;
   const initial = useRef(value);
 
   useEffect(() => {
@@ -130,12 +142,29 @@ export function BodyEditor({
               redo(this: { quill: InstanceType<typeof Quill> }) {
                 this.quill.history.redo();
               },
+              settings() {
+                onSettingsRef.current();
+              },
             },
           },
         },
       });
 
       quill.current = editor;
+
+      // Quill labels each toolbar button with its bare format name, so
+      // this one would be announced as "settings" and show no tooltip.
+      // `aria-haspopup` tells a screen reader it opens a dialog rather
+      // than applying something to the selection, which is what every
+      // other button in the row does.
+      const toolbar = editor.getModule("toolbar") as
+        | { container: HTMLElement }
+        | undefined;
+      const settingsButton =
+        toolbar?.container.querySelector("button.ql-settings");
+      settingsButton?.setAttribute("aria-label", "Post settings");
+      settingsButton?.setAttribute("title", "Post settings");
+      settingsButton?.setAttribute("aria-haspopup", "dialog");
 
       // `silent`, so seeding the editor does not register as an edit
       // and does not fire the change handler back at the form.
@@ -299,6 +328,12 @@ function registerFormats(Quill: typeof import("quill").default) {
   const icons = Quill.import("ui/icons") as Record<string, string>;
   icons.undo = `<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M5 7H11a3.5 3.5 0 0 1 0 7H8"/><path class="ql-stroke" d="M7.5 4.5 4.5 7l3 2.5"/></svg>`;
   icons.redo = `<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M13 7H7a3.5 3.5 0 0 0 0 7h3"/><path class="ql-stroke" d="M10.5 4.5 13.5 7l-3 2.5"/></svg>`;
+  // A gear, drawn on a 24-unit grid because the teeth do not survive
+  // being drawn at 18. The button scales it down to Quill's 18, which
+  // would thin the stroke to match; the inline width puts it back in
+  // line with its neighbours. Inline because snow's `.ql-stroke` rule
+  // sets the width in CSS, and CSS beats a presentation attribute.
+  icons.settings = `<svg viewBox="0 0 24 24"><path class="ql-stroke" style="stroke-width:2.5" d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle class="ql-stroke" style="stroke-width:2.5" cx="12" cy="12" r="3"/></svg>`;
 
   const BlockEmbed = Quill.import("blots/block/embed") as new () => object;
 
