@@ -19,7 +19,7 @@ import { SITE } from "@/lib/site";
 /** Keys map to utilities rather than inline styles, so a body can never
  *  put an arbitrary font-family on the page. */
 const FONT_CLASS = { serif: "font-serif", mono: "font-mono" } as const;
-import { getPost, listPublishedPosts } from "@/lib/blog-store";
+import { getPublishedPost, listPublishedPosts } from "@/lib/blog-store";
 
 /** Every published post is known at build time, so every published post
  *  is prerendered. Drafts are absent, and the page below 404s them, so a
@@ -37,11 +37,12 @@ export async function generateMetadata({
   // `params` is a Promise in this version of Next — it must be awaited
   // before any property is read.
   const { slug } = await params;
-  const post = await getPost(slug);
-  // A draft is treated exactly as a missing post here, so its title
-  // cannot leak into a tab, a share card or a crawler's index via a
-  // guessed URL. The page itself 404s for the same reason.
-  if (!post || post.draft) return { title: "Post not found" };
+  const post = await getPublishedPost(slug);
+  // `getPublishedPost` reads with the publishable key, and Row Level
+  // Security never hands a draft to that key — so a draft's slug arrives
+  // here as nothing, and its title cannot leak into a tab, a share card
+  // or a crawler's index via a guessed URL.
+  if (!post) return { title: "Post not found" };
 
   // The SEO overrides fall back to the post's own fields, so a writer
   // who fills neither still gets correct metadata. They exist because
@@ -297,13 +298,13 @@ function BlockView({ block }: { block: Block }) {
 
 export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
   const { slug } = await params;
-  const post = await getPost(slug);
+  const post = await getPublishedPost(slug);
 
   // A slug that does not resolve is a 404, not an empty page — and so is
-  // a draft. `generateStaticParams` already omits drafts, but this route
-  // still renders unknown slugs on demand, so without this check a draft
-  // would be served to anyone who typed its URL.
-  if (!post || post.draft) notFound();
+  // a draft, which `getPublishedPost` cannot see. That matters because
+  // this route still renders slugs it did not prerender, on demand: the
+  // database is what stops a typed-in draft URL, not this file.
+  if (!post) notFound();
 
   const others = (await listPublishedPosts())
     .filter((p) => p.slug !== post.slug)

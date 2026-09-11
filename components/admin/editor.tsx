@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { ImageUploadButton } from "@/components/admin/image-upload-button";
 import type { Block } from "@/lib/blog";
 import { blocksToDelta, deltaToBlocks, type Delta } from "@/lib/blog-blocks";
+import { IMAGE_URL_RULE, isAllowedImageUrl } from "@/lib/media";
 
 /**
  * The post body editor, on Quill.
@@ -47,11 +49,6 @@ const TOOLBAR = [
   // control here acts on the selection, and this one acts on the post.
   ["settings"],
 ];
-
-/** The only host the image optimizer is configured to fetch from, in
- *  next.config.ts. An image anywhere else renders as a broken box on
- *  the published page, so it is refused here rather than saved. */
-const MEDIA_HOST = "media.instant.nebkern.com";
 
 type ImageDraft = { src: string; alt: string; caption: string };
 
@@ -129,8 +126,9 @@ export function BodyEditor({
               // Overrides Quill's own image handler, which opens a file
               // picker and inlines the file as a base64 data URL. That
               // would write megabytes of image into the post JSON and
-              // into every page that loads it. Images live on the media
-              // host; this collects a URL instead.
+              // into every page that loads it. Images live in Supabase
+              // Storage instead: this opens a panel that uploads one
+              // there (or takes a link) and stores only its URL.
               image(this: { quill: InstanceType<typeof Quill> }) {
                 savedRange.current = this.quill.getSelection(true)?.index ?? 0;
                 setImageError(null);
@@ -158,8 +156,7 @@ export function BodyEditor({
       // than applying something to the selection, which is what every
       // other button in the row does.
       const toolbar = editor.getModule("toolbar") as
-        | { container: HTMLElement }
-        | undefined;
+        { container: HTMLElement } | undefined;
       const settingsButton =
         toolbar?.container.querySelector("button.ql-settings");
       settingsButton?.setAttribute("aria-label", "Post settings");
@@ -200,19 +197,10 @@ export function BodyEditor({
     const src = draft.src.trim();
     const alt = draft.alt.trim();
 
-    if (!src) return setImageError("Paste the image URL.");
-
-    let host: string;
-    try {
-      host = new URL(src).hostname;
-    } catch {
-      return setImageError("That is not a valid URL.");
-    }
-    if (host !== MEDIA_HOST) {
-      return setImageError(
-        `Images must be on ${MEDIA_HOST} — the only host the site is configured to load from.`,
-      );
-    }
+    if (!src) return setImageError("Upload an image, or paste its link.");
+    // The same check the save action runs on the server, so an image
+    // accepted here is one the published page is able to load.
+    if (!isAllowedImageUrl(src)) return setImageError(`${IMAGE_URL_RULE}.`);
     // Required, not encouraged. An image with no description is the
     // commonest accessibility failure in a CMS, and it happens whenever
     // the field is skippable.
@@ -248,17 +236,57 @@ export function BodyEditor({
       <div ref={host} />
 
       {draft && (
-        <div className="border-t border-line bg-surface-2 p-4">
+        <div
+          className="border-t border-line bg-surface-2 p-4"
+          // This panel sits inside the post's <form>, so Enter in any of
+          // its fields would do what Enter does in a form: submit it with
+          // the first submit button — Publish. Here Enter means "insert".
+          // An IME mid-composition keeps Enter for confirming characters.
+          onKeyDown={(e) => {
+            if (
+              e.key === "Enter" &&
+              !e.nativeEvent.isComposing &&
+              e.target instanceof HTMLInputElement
+            ) {
+              e.preventDefault();
+              insertImage();
+            }
+          }}
+        >
           <p className="text-[0.8125rem] font-medium text-ink">Insert image</p>
 
-          <div className="mt-3 grid gap-3 sm:grid-cols-3">
-            <input
-              autoFocus
-              value={draft.src}
-              onChange={(e) => setDraft({ ...draft, src: e.target.value })}
-              placeholder={`https://${MEDIA_HOST}/assets/blog/…`}
-              className={`${field} sm:col-span-3`}
+          {/* Only once the link is one the site can load, so the preview
+              never shows a picture that would then fail to publish. */}
+          {isAllowedImageUrl(draft.src) && (
+            // eslint-disable-next-line @next/next/no-img-element -- a preview of a URL still being edited; next/image would re-optimise on every change and adds nothing here.
+            <img
+              src={draft.src}
+              alt=""
+              className="mt-3 max-h-48 rounded-md border border-line-soft bg-surface object-contain"
             />
+          )}
+
+          <div className="mt-3 grid gap-3 sm:grid-cols-3">
+            {/* Upload or paste. An upload writes the stored file's URL
+                into this same field, so there is one value and one check
+                however the image arrived. */}
+            <div className="flex gap-2 sm:col-span-3">
+              <input
+                autoFocus
+                value={draft.src}
+                onChange={(e) => setDraft({ ...draft, src: e.target.value })}
+                placeholder="Image link — or upload one"
+                aria-label="Image link"
+                className={`${field} min-w-0 flex-1`}
+              />
+              <ImageUploadButton
+                onUploaded={(url) => {
+                  setImageError(null);
+                  setDraft((d) => (d ? { ...d, src: url } : d));
+                }}
+                onError={setImageError}
+              />
+            </div>
             <input
               value={draft.alt}
               onChange={(e) => setDraft({ ...draft, alt: e.target.value })}

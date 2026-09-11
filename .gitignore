@@ -32,6 +32,9 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# The template is the exception: it names every variable the site needs
+# and holds no secrets, so it belongs in git.
+!.env.example
 
 # vercel
 .vercel

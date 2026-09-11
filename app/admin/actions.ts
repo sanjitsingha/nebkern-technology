@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -10,6 +12,15 @@ import {
   hasValidSession,
 } from "@/lib/admin-auth";
 import { DEFAULT_TITLE, slugify, type Block, type Post } from "@/lib/blog";
+import {
+  BLOG_IMAGE_BUCKET,
+  IMAGE_TYPES,
+  IMAGE_URL_RULE,
+  MAX_IMAGE_BYTES,
+  blogImageUrl,
+  isAllowedImageUrl,
+} from "@/lib/media";
+import { adminStorage } from "@/lib/supabase";
 import {
   createPost,
   deletePost,
@@ -171,6 +182,23 @@ export async function savePostAction(
   // what the title and the slug are.
   // No "needs a title" check any more — `postFromForm` guarantees one.
   if (!post.slug) return { error: "That title does not make a usable URL." };
+
+  // Every image has to be somewhere the site can actually load it from.
+  // The editor checks this in the browser, but a Server Action is a
+  // public endpoint, so the check that counts is this one. It matters
+  // more than it looks: `next/image` throws on a host it was not
+  // configured for, so one bad cover URL would take the article page
+  // down rather than just show a broken picture.
+  const images = [
+    post.cover?.src,
+    ...post.body.flatMap((block) =>
+      block.type === "image" ? [block.src] : [],
+    ),
+  ];
+  const badImage = images.find((src) => src && !isAllowedImageUrl(src));
+  if (badImage) {
+    return { error: `${IMAGE_URL_RULE}. This one is not allowed: ${badImage}` };
+  }
   if (!draft && !post.body.length) {
     return { error: "A post needs a body before it can be published." };
   }
@@ -209,6 +237,59 @@ export async function deletePostAction(formData: FormData) {
   }
 
   redirect("/admin/posts");
+}
+
+/** A single-use permission to put one image into the bucket, or why not. */
+export type UploadTicket =
+  { path: string; token: string; url: string } | { error: string };
+
+/**
+ * Step one of an image upload: decide where the file goes and hand the
+ * browser a signed URL to send it to.
+ *
+ * The file does not come through here. The browser uploads it straight
+ * to Supabase Storage with the returned token, which is valid for that
+ * one path only and expires in two hours. So a large photo is never held
+ * to this server's request-size limit, and the secret key — the only
+ * thing that can mint a token — never leaves the server.
+ *
+ * The type and size checks below trust what the browser declared, and
+ * exist to fail fast with a readable message. The real limits are on the
+ * bucket, which checks the actual bytes and refuses anything else.
+ *
+ * The name is random rather than the uploaded filename: it cannot collide
+ * with or overwrite another image, it leaks nothing about the writer's
+ * disk, and it needs no escaping in a URL. The year/month folder is only
+ * there to keep the bucket browsable in the dashboard.
+ */
+export async function createImageUploadAction(file: {
+  type: string;
+  size: number;
+}): Promise<UploadTicket> {
+  await requireSession();
+
+  const ext = IMAGE_TYPES[file.type];
+  if (!ext) {
+    return { error: "Use a JPG, PNG, WebP, AVIF or GIF image." };
+  }
+  if (!Number.isFinite(file.size) || file.size <= 0) {
+    return { error: "That file is empty." };
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    return {
+      error: `That image is ${(file.size / 1024 / 1024).toFixed(1)} MB; the limit is ${MAX_IMAGE_BYTES / 1024 / 1024} MB.`,
+    };
+  }
+
+  const [year, month] = today().split("-");
+  const path = `${year}/${month}/${randomUUID()}.${ext}`;
+
+  const { data, error } = await adminStorage()
+    .from(BLOG_IMAGE_BUCKET)
+    .createSignedUploadUrl(path);
+
+  if (error) return { error: `Could not start the upload: ${error.message}` };
+  return { path: data.path, token: data.token, url: blogImageUrl(data.path) };
 }
 
 /**

@@ -5,7 +5,9 @@ import { useActionState, useRef, useState } from "react";
 
 import { savePostAction, type FormState } from "@/app/admin/actions";
 import { BodyEditor } from "@/components/admin/editor";
+import { ImageUploadButton } from "@/components/admin/image-upload-button";
 import { DEFAULT_TITLE, slugify, type Block, type Post } from "@/lib/blog";
+import { isAllowedImageUrl } from "@/lib/media";
 import { SITE } from "@/lib/site";
 
 /**
@@ -102,6 +104,11 @@ export function PostForm({ post }: { post?: Post }) {
   const [seoDescription, setSeoDescription] = useState(
     post?.seo?.description ?? "",
   );
+
+  // Controlled, unlike the other settings fields, because an upload has
+  // to be able to write the stored file's URL into it.
+  const [coverSrc, setCoverSrc] = useState(post?.cover?.src ?? "");
+  const [coverError, setCoverError] = useState<string | null>(null);
 
   // The settings dialog, driven imperatively. There is no `open` state
   // to keep in step with the element: the browser owns whether it is
@@ -398,13 +405,45 @@ export function PostForm({ post }: { post?: Post }) {
                 </Panel>
 
                 <Panel>
-                  <input
-                    name="coverSrc"
-                    defaultValue={post?.cover?.src}
-                    placeholder="Cover image URL"
-                    aria-label="Cover image URL"
-                    className={`${FIELD} text-[0.8125rem]`}
-                  />
+                  {/* Shown only once the link is one the site can load,
+                      so the preview never promises a cover that would
+                      then fail to publish. 21:9, the article's own ratio,
+                      so the crop here is the crop on the page. */}
+                  {isAllowedImageUrl(coverSrc) && (
+                    // eslint-disable-next-line @next/next/no-img-element -- a preview of a URL still being edited; next/image would re-optimise on every change and adds nothing here.
+                    <img
+                      src={coverSrc}
+                      alt=""
+                      className="aspect-21/9 w-full rounded-md border border-line-soft bg-surface-2 object-cover"
+                    />
+                  )}
+
+                  <div className="flex gap-2">
+                    <input
+                      name="coverSrc"
+                      value={coverSrc}
+                      onChange={(e) => {
+                        setCoverError(null);
+                        setCoverSrc(e.target.value);
+                      }}
+                      placeholder="Cover image — upload or paste a link"
+                      aria-label="Cover image URL"
+                      className={`${FIELD} min-w-0 flex-1 text-[0.8125rem]`}
+                    />
+                    <ImageUploadButton
+                      onUploaded={(url) => {
+                        setCoverError(null);
+                        setCoverSrc(url);
+                      }}
+                      onError={setCoverError}
+                    />
+                  </div>
+
+                  {coverError && (
+                    <p role="alert" className="text-[0.8125rem] text-warning">
+                      {coverError}
+                    </p>
+                  )}
                   <input
                     name="coverAlt"
                     defaultValue={post?.cover?.alt}
