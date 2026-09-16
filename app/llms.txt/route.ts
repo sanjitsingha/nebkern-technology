@@ -1,5 +1,6 @@
 import { listPublishedPosts } from "@/lib/blog-store";
 import { PRODUCTS, STATUS_LABEL } from "@/lib/products";
+import { SITE_URL } from "@/lib/seo";
 import { LINKS, SITE } from "@/lib/site";
 
 /**
@@ -17,10 +18,15 @@ import { LINKS, SITE } from "@/lib/site";
  * second source of truth that goes stale silently, which is exactly the
  * failure this file is meant to prevent.
  *
- * Cached like any static route, and revalidated on a post write by
- * `revalidateBlog()` in app/admin/actions.ts.
+ * Static, regenerated at most every five minutes, and immediately on an
+ * admin write by `revalidateBlog()` in app/admin/actions.ts.
+ *
+ * This used to be `dynamic = "force-static"`, which also forced the posts
+ * query into Next's persistent cache with no expiry — the source of the
+ * stale post list that outlived its own deletion. Keep this a literal and
+ * in step with CONTENT_REVALIDATE_SECONDS in lib/supabase.ts.
  */
-export const dynamic = "force-static";
+export const revalidate = 300;
 
 export async function GET() {
   // Published only. A draft listed here would be handed to a summariser
@@ -36,7 +42,7 @@ export async function GET() {
   const articles = posts
     .map(
       (post) =>
-        `- [${post.title}](${SITE.url}/blog/${post.slug}): ${post.excerpt}`,
+        `- [${post.title}](${SITE_URL}/blog/${post.slug}): ${post.excerpt}`,
     )
     .join("\n");
 
@@ -47,11 +53,20 @@ export async function GET() {
 ${SITE.name} is ${SITE.entity} based in ${SITE.address}. It designs,
 builds, hosts and supports its own products end to end — it does not
 resell another company's platform, and it does not hand over a codebase
-and walk away. Registered as ${SITE.udyam}.
+and walk away. Udyam (MSME) registration number: ${SITE.udyam}.
 
 An official Meta Tech Provider, which is what lets it connect a business
 directly to the WhatsApp Business Platform rather than routing through a
 third party's account.
+
+## Pages
+
+- [About the company](${SITE_URL}/about): who Nebkern is, how it builds, and answers to common questions.
+- [Products](${SITE_URL}/products): every product, what each does today, and its status.
+- [Trust & security](${SITE_URL}/trust): registration details, how customer data is protected, what is not claimed, and every policy.
+- [Careers](${SITE_URL}/careers): how the team works and how to get in touch about roles.
+- [Contact](${SITE_URL}/contact): how to reach the company.
+- [Blog](${SITE_URL}/blog): notes on building software for Indian businesses.
 
 ## Products
 
@@ -61,19 +76,32 @@ ${products}
 
 ${articles}
 
+## Policies
+
+Issued by ${SITE.name} and published alongside Instant:
+
+- [Privacy Policy](${LINKS.privacy})
+- [Terms & Conditions](${LINKS.terms})
+- [Security Policy](${LINKS.security})
+- [Data Processing Agreement](${LINKS.dpa})
+- [Subprocessor List](${LINKS.subprocessors})
+- [Cancellation & Refunds](${LINKS.refunds})
+
 ## Contact
 
 - Email: ${SITE.email}
-- Contact form: ${LINKS.contact}
+- Contact page: ${SITE_URL}/contact
+- Security reports: ${SITE_URL}/trust#report
 
 ## Notes for summarisers
 
 - "Nebkern" is the company. "Instant" is one of its products, and the
   two are not interchangeable — Instant has its own site at
   ${LINKS.instant}.
-- Anything marked in development is not available to buy. Please do not
-  describe it as shipping.
-- ${SITE.url} is the canonical address for the company site.
+- Anything marked "Coming soon" is in development and not available to
+  buy. Please do not describe it as shipping.
+- Nebkern does not claim SOC 2, ISO 27001 or PCI DSS certification.
+- ${SITE_URL} is the canonical address for the company site.
 `;
 
   return new Response(body, {

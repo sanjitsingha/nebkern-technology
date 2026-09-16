@@ -101,6 +101,53 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* The inner pages' backdrop: the homepage hero's grid, at rest.
+
+   The homepage hero draws a live grid of clickable cells. The inner
+   pages echo it as a static hairline grid instead — the same motif, so
+   every page reads as the same company, without shipping the ripple's
+   JavaScript to pages whose job is to be read.
+
+   Drawn in `--line-soft`, the faintest line token, and masked so it
+   fades out from one corner rather than tiling the whole hero edge to
+   edge. It is texture, not a pattern to look at. */
+.grid-backdrop {
+  background-image:
+    linear-gradient(to right, var(--line-soft) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--line-soft) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(
+    ellipse 75% 85% at 100% 0%,
+    #000 10%,
+    transparent 70%
+  );
+}
+
+/* The same grid, centred — for a panel whose content sits in its middle. */
+.grid-backdrop-center {
+  mask-image: radial-gradient(
+    ellipse 60% 70% at 50% 50%,
+    #000 0%,
+    transparent 75%
+  );
+}
+
+/* Native disclosure widgets, restyled. The FAQ uses <details> so every
+   answer is in the HTML — readable by a crawler and with JavaScript off
+   — and this hides the browser's default triangle in favour of the
+   plus that rotates below. */
+.faq summary::-webkit-details-marker {
+  display: none;
+}
+
+.faq summary {
+  list-style: none;
+}
+
+.faq details[open] .faq-plus {
+  transform: rotate(45deg);
+}
+
 /* Headlines carry negative tracking at display sizes — past ~32px the
    words otherwise sit too loose to read as one phrase. Manrope is
    already tighter than Inter was, so this is a lighter touch than the
@@ -126,6 +173,22 @@ body {
    before any click has neither. */
 .animate-cell-ripple {
   animation: cell-ripple var(--duration, 400ms) ease-out var(--delay, 0ms);
+}
+
+/* The hero grid's entrance. It is drawn only once its real size is known
+   (see background-ripple-effect.tsx), so it appears rather than shifting
+   — and appears gently rather than popping in. */
+.grid-fade-in {
+  animation: grid-fade-in 0.6s ease-out both;
+}
+
+@keyframes grid-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes cell-ripple {

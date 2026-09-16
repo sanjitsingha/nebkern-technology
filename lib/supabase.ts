@@ -39,6 +39,66 @@ import type { Database } from "@/lib/database.types";
 
 type Db = PostgrestClient<Database>;
 
+/**
+ * How stale a public page may get when posts change OUTSIDE the admin —
+ * edited straight in the Supabase dashboard, say — before it refreshes
+ * on its own. The admin's own saves do not wait for this: they expire
+ * the cache immediately through `updateTag(POSTS_CACHE_TAG)`.
+ *
+ * The public routes that read posts repeat this number as their own
+ * `export const revalidate = 300` (Next requires that one to be a
+ * literal), so change them together.
+ */
+export const CONTENT_REVALIDATE_SECONDS = 300;
+
+/** The cache tag on every public posts read, expired on every admin write. */
+export const POSTS_CACHE_TAG = "posts";
+
+/**
+ * Part of the cache KEY for every public read. Bump it whenever the
+ * caching contract below changes.
+ *
+ * Next matches a cached fetch on URL, method, headers and body — and an
+ * entry keeps the lifetime it was WRITTEN with. The first version of
+ * this client let a force-static route store the posts query with no
+ * expiry at all; giving later requests a five-minute lifetime did not
+ * shorten that entry, it made every read opt into the cache and find it
+ * "fresh". A new header value is a new key, so entries written under an
+ * old contract — in `.next/cache` locally, or in a build cache Vercel
+ * restores — can never be served again. PostgREST ignores the header.
+ */
+const CACHE_KEY_VERSION = "2";
+
+/**
+ * Why the public client passes its own `fetch`.
+ *
+ * Next persists server-side fetch responses in its Data Cache, and that
+ * cache survives across builds — locally in `.next/cache`, and on Vercel,
+ * which restores it between deploys. With no lifetime set, a route
+ * forced static (llms.txt was) stored the posts query forever, and every
+ * later build reused it: /blog and the sitemap went on listing five
+ * posts that had been deleted from the database days earlier.
+ *
+ * A bounded lifetime plus a tag fixes both directions: a cached response
+ * can never be older than CONTENT_REVALIDATE_SECONDS, and an admin write
+ * expires it on the spot.
+ */
+const publicFetch: typeof fetch = (input, init) => {
+  const headers = new Headers(init?.headers);
+  headers.set("x-nebkern-cache-version", CACHE_KEY_VERSION);
+  return fetch(input, {
+    ...init,
+    headers,
+    next: { revalidate: CONTENT_REVALIDATE_SECONDS, tags: [POSTS_CACHE_TAG] },
+  });
+};
+
+/** The admin always reads live. Its pages are per-request already (they
+ *  read the session cookie), and an editor must never see a cached copy
+ *  of the post they just saved. */
+const adminFetch: typeof fetch = (input, init) =>
+  fetch(input, { ...init, cache: "no-store" });
+
 function required(name: string, value: string | undefined): string {
   if (!value) {
     throw new Error(
@@ -81,6 +141,7 @@ export function publicDb(): Db {
         process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY,
       ),
     ),
+    fetch: publicFetch,
   });
   return publicClient;
 }
@@ -89,6 +150,7 @@ export function publicDb(): Db {
 export function adminDb(): Db {
   adminClient ??= new PostgrestClient<Database>(`${projectUrl()}/rest/v1`, {
     headers: authHeaders(secretKey()),
+    fetch: adminFetch,
   });
   return adminClient;
 }

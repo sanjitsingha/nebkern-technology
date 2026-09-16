@@ -17,6 +17,15 @@ export const SITE = {
   tagline: "We build the software Indian businesses run on.",
   description:
     "Nebkern Technology is a software company in Siliguri, West Bengal. We design, build, host and support our own products end to end — including Instant, sales and support on the official WhatsApp Business API.",
+  /**
+   * The homepage's meta description. `description` above runs to 207
+   * characters and Google cuts a result snippet off at around 155, so the
+   * homepage's result read as a sentence that stopped mid-clause. The long
+   * one stays for structured data and llms.txt, where length costs
+   * nothing.
+   */
+  summary:
+    "Nebkern Technology builds, hosts and supports software for Indian businesses — including Instant, sales and support on the official WhatsApp Business API.",
 
   city: "Siliguri",
   address: "Siliguri, West Bengal, India",

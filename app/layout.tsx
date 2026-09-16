@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
+import { PRODUCTS } from "@/lib/products";
+import { ORGANIZATION_ID, SITE_URL, WEBSITE_ID } from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
 // Manrope, and deliberately NOT Instant's Inter — the parent brand now
@@ -27,11 +29,6 @@ const mono = JetBrains_Mono({
   display: "swap",
 });
 
-const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? SITE.url).replace(
-  /\/$/,
-  "",
-);
-
 export const metadata: Metadata = {
   // Resolves the relative URLs in the OG tags to absolute ones. Without
   // it Next warns at build and social scrapers receive paths they
@@ -41,14 +38,17 @@ export const metadata: Metadata = {
     default: `${SITE.name} — ${SITE.tagline}`,
     template: `%s — ${SITE.name}`,
   },
-  description: SITE.description,
+  description: SITE.summary,
   applicationName: SITE.shortName,
+  authors: [{ name: SITE.name, url: `${SITE_URL}/` }],
+  creator: SITE.name,
+  publisher: SITE.name,
   // What Google prints ABOVE the blue title line. Left undeclared it
   // falls back to the bare domain.
   openGraph: {
     siteName: SITE.shortName,
     title: `${SITE.name} — ${SITE.tagline}`,
-    description: SITE.description,
+    description: SITE.summary,
     type: "website",
     locale: "en_IN",
     url: `${SITE_URL}/`,
@@ -56,10 +56,27 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: `${SITE.name} — ${SITE.tagline}`,
-    description: SITE.description,
+    description: SITE.summary,
   },
+  // The homepage's canonical. Every other page sets its own through
+  // `pageMetadata` in lib/seo.ts — a page that did not would inherit this
+  // one and tell crawlers it was a duplicate of the homepage.
   alternates: { canonical: `${SITE_URL}/` },
-  robots: { index: true, follow: true },
+  robots: {
+    index: true,
+    follow: true,
+    // Allows full-size image previews and unlimited snippet length in
+    // results. Google's defaults are more conservative than a company
+    // site has any reason to be.
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
+  formatDetection: { telephone: false, address: false, email: false },
   /**
    * Trustpilot proves domain ownership by reading a meta tag from the
    * homepage. `verification.other` renders it as
@@ -85,28 +102,68 @@ export const viewport: Viewport = {
 };
 
 /**
- * Organization data, so a search engine can tie the domain to a named,
- * registered business rather than guessing. `identifier` carries the
- * Udyam number — the one machine-checkable fact that separates us from
- * a landing page.
+ * The company and the website, as one linked graph.
+ *
+ * Every page's own structured data points back at these two by `@id`
+ * rather than describing the company again, so a crawler sees one
+ * organisation across the whole domain. `identifier` carries the Udyam
+ * number — the one machine-checkable fact that separates a registered
+ * business from a landing page — and `logo` is a 512px PNG, above the
+ * 112px minimum Google asks for.
  */
-const ORGANIZATION_JSONLD = {
+const SITE_JSONLD = {
   "@context": "https://schema.org",
-  "@type": "Organization",
-  name: SITE.name,
-  alternateName: SITE.shortName,
-  url: `${SITE_URL}/`,
-  description: SITE.description,
-  slogan: SITE.tagline,
-  identifier: SITE.udyam,
-  email: SITE.email,
-  address: {
-    "@type": "PostalAddress",
-    addressLocality: SITE.city,
-    addressRegion: "West Bengal",
-    addressCountry: "IN",
-  },
-  brand: { "@type": "Brand", name: "Instant" },
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": ORGANIZATION_ID,
+      name: SITE.name,
+      alternateName: SITE.shortName,
+      url: `${SITE_URL}/`,
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/logo.png`,
+        width: 512,
+        height: 512,
+      },
+      description: SITE.description,
+      slogan: SITE.tagline,
+      email: SITE.email,
+      identifier: {
+        "@type": "PropertyValue",
+        propertyID: "Udyam registration number",
+        value: SITE.udyam,
+      },
+      address: {
+        "@type": "PostalAddress",
+        addressLocality: SITE.city,
+        addressRegion: "West Bengal",
+        addressCountry: "IN",
+      },
+      areaServed: { "@type": "Country", name: "India" },
+      contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: SITE.email,
+        areaServed: "IN",
+        availableLanguage: "English",
+      },
+      brand: PRODUCTS.filter((p) => p.href).map((p) => ({
+        "@type": "Brand",
+        name: p.name,
+      })),
+    },
+    {
+      "@type": "WebSite",
+      "@id": WEBSITE_ID,
+      url: `${SITE_URL}/`,
+      name: SITE.name,
+      alternateName: SITE.shortName,
+      description: SITE.description,
+      inLanguage: "en-IN",
+      publisher: { "@id": ORGANIZATION_ID },
+    },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -127,10 +184,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         </noscript>
         <script
           type="application/ld+json"
-          // Serialised, not interpolated — the values are ours, but a
-          // stringify keeps a stray quote from ever breaking the tag.
+          // `<` escaped: JSON.stringify does not, and a stray `</script>`
+          // in any value would end the tag early.
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(ORGANIZATION_JSONLD),
+            __html: JSON.stringify(SITE_JSONLD).replace(/</g, "\\u003c"),
           }}
         />
         {children}

@@ -7,6 +7,8 @@ import { PostCover } from "@/components/site/post-cover";
 import { CopyLink } from "@/components/site/copy-link";
 import { ListLabel, PostRow } from "@/components/site/post-row";
 import { Footer } from "@/components/site/footer";
+import { JsonLd } from "@/components/site/page";
+import { breadcrumbJsonLd } from "@/lib/seo";
 import {
   blockText,
   formatDate,
@@ -26,6 +28,10 @@ import { getPublishedPost, listPublishedPosts } from "@/lib/blog-store";
  *  draft is not reachable by guessing its URL either.
  *  Once the data comes from Supabase this same function does the same
  *  job — it is already async. */
+/** Prerendered, refreshed at most every five minutes, and at once on an
+ *  admin save. A literal, in step with CONTENT_REVALIDATE_SECONDS. */
+export const revalidate = 300;
+
 export async function generateStaticParams() {
   const posts = await listPublishedPosts();
   return posts.map((p) => ({ slug: p.slug }));
@@ -63,6 +69,7 @@ export async function generateMetadata({
     authors: [{ name: post.author.name }],
     openGraph: {
       siteName: SITE.shortName,
+      locale: "en_IN",
       type: "article",
       title,
       description,
@@ -72,17 +79,27 @@ export async function generateMetadata({
       // the page changed without restating it as newly published.
       modifiedTime: post.updatedAt ?? post.date,
       authors: [post.author.name],
-      // Falls through to the site-wide opengraph-image when a post has
-      // no cover of its own, so a shared link is never a bare card.
-      ...(post.cover
-        ? { images: [{ url: post.cover.src, alt: post.cover.alt }] }
-        : {}),
+      // A post with a cover shares its cover. One without gets a card
+      // drawn with its own title (app/blog/[slug]/card.png). This used to
+      // assume the site-wide card would fill the gap — it does not: once
+      // a page sets `openGraph` at all, it no longer inherits the root's
+      // image, and these posts were shared as bare links.
+      images: post.cover
+        ? [{ url: post.cover.src, alt: post.cover.alt }]
+        : [
+            {
+              url: `/blog/${post.slug}/card.png`,
+              width: 1200,
+              height: 630,
+              alt: post.title,
+            },
+          ],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      ...(post.cover ? { images: [post.cover.src] } : {}),
+      images: [post.cover ? post.cover.src : `/blog/${post.slug}/card.png`],
     },
   };
 }
@@ -375,6 +392,14 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
       >
         Skip to content
       </a>
+
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Blog", path: "/blog" },
+          { name: post.title, path: `/blog/${post.slug}` },
+        ])}
+      />
 
       <Nav />
 

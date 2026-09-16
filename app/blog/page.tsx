@@ -3,14 +3,31 @@ import type { Metadata } from "next";
 import { Nav } from "@/components/site/nav";
 import { Footer } from "@/components/site/footer";
 import { BlogSearch } from "@/components/site/blog-search";
+import { JsonLd } from "@/components/site/page";
 import { listPublishedPosts } from "@/lib/blog-store";
+import {
+  ORGANIZATION_ID,
+  absoluteUrl,
+  breadcrumbJsonLd,
+  pageMetadata,
+} from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
-export const metadata: Metadata = {
+const DESCRIPTION = `Notes from ${SITE.name} on building and running software for Indian businesses.`;
+
+/** Static, refreshed at most every five minutes — and at once on an admin
+ *  save. A literal, in step with CONTENT_REVALIDATE_SECONDS. */
+export const revalidate = 300;
+
+// This page used to set only a title, description and canonical. With no
+// `openGraph` of its own it inherited the ROOT layout's — so every shared
+// link to /blog previewed with the homepage's title and og:url.
+export const metadata: Metadata = pageMetadata({
   title: "Blog",
-  description: `Notes from ${SITE.name} on building and running software for Indian businesses.`,
-  alternates: { canonical: "/blog" },
-};
+  description: DESCRIPTION,
+  path: "/blog",
+  shareTitle: `Blog — ${SITE.name}`,
+});
 
 export default async function BlogIndex() {
   const posts = await listPublishedPosts();
@@ -41,6 +58,31 @@ export default async function BlogIndex() {
       >
         Skip to content
       </a>
+
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Blog",
+          "@id": `${absoluteUrl("/blog")}#blog`,
+          url: absoluteUrl("/blog"),
+          name: `${SITE.shortName} blog`,
+          description: DESCRIPTION,
+          inLanguage: "en-IN",
+          publisher: { "@id": ORGANIZATION_ID },
+          blogPost: posts.map((post) => ({
+            "@type": "BlogPosting",
+            headline: post.title,
+            url: absoluteUrl(`/blog/${post.slug}`),
+            datePublished: post.date,
+          })),
+        }}
+      />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Blog", path: "/blog" },
+        ])}
+      />
 
       <Nav />
 

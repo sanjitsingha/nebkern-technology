@@ -1,6 +1,5 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
-
-import { LINKS } from "@/lib/site";
 
 /**
  * The panel that rides up onto the banner: the company's values, four
@@ -45,7 +44,9 @@ function Icon({ children }: { children: ReactNode }) {
   );
 }
 
-const VALUES: { title: string; body: string; icon: ReactNode }[] = [
+/** Exported: /about renders the same four values in its own layout, so
+ *  the company states its values in exactly one set of words. */
+export const VALUES: { title: string; body: string; icon: ReactNode }[] = [
   {
     title: "We build it and we run it",
     body: "We write the code, own the repositories and run the servers. Being an official Meta Tech Provider is our own integration with the WhatsApp Business Platform — not a licence bought from a middleman who could withdraw it.",
@@ -171,8 +172,11 @@ export function Values() {
           </ul>
 
           <div className="mt-14 flex justify-center">
-            <a
-              href={LINKS.contact}
+            {/* Our own contact page, not Instant's help centre. This
+                panel sells the company, and someone moved to talk to the
+                company should not land on a product's support site. */}
+            <Link
+              href="/contact"
               className="inline-flex items-center gap-2 border border-line px-6 py-3 text-[0.9375rem] font-semibold text-accent transition-colors hover:border-accent"
             >
               Talk to us
@@ -188,7 +192,7 @@ export function Values() {
               >
                 <path d="M3 8h10M9 4l4 4-4 4" />
               </svg>
-            </a>
+            </Link>
           </div>
         </div>
       </div>

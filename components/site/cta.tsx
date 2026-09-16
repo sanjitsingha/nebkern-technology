@@ -1,5 +1,7 @@
+import Link from "next/link";
+
 import { TypewriterEffectSmooth } from "@/components/ui/typewriter-effect";
-import { LINKS, SITE } from "@/lib/site";
+import { SITE } from "@/lib/site";
 
 /**
  * The headline, split for the typewriter.
@@ -52,8 +54,8 @@ export function Cta() {
             </p>
 
             <div className="mt-9 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
-              <a
-                href={LINKS.contact}
+              <Link
+                href="/contact"
                 className="inline-flex items-center justify-center gap-2 bg-accent px-5 py-3 text-[0.9375rem] font-medium text-accent-fg transition-colors hover:bg-accent-hover"
               >
                 Talk to us
@@ -69,7 +71,7 @@ export function Cta() {
                 >
                   <path d="M3 8h10M9 4l4 4-4 4" />
                 </svg>
-              </a>
+              </Link>
               <a
                 href={`mailto:${SITE.email}`}
                 className="inline-flex items-center justify-center border border-line px-5 py-3 text-[0.9375rem] font-medium break-all text-ink transition-colors hover:border-ink/25"

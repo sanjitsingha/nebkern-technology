@@ -2,7 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import {
@@ -20,7 +20,7 @@ import {
   blogImageUrl,
   isAllowedImageUrl,
 } from "@/lib/media";
-import { adminStorage } from "@/lib/supabase";
+import { POSTS_CACHE_TAG, adminStorage } from "@/lib/supabase";
 import {
   createPost,
   deletePost,
@@ -299,6 +299,13 @@ export async function createImageUploadAction(file: {
  * well as the one it now does.
  */
 function revalidateBlog(oldSlug: string, newSlug: string) {
+  // First, and on its own: expire the cached posts QUERY. `revalidatePath`
+  // below only marks pages for regeneration — a page regenerated against
+  // a still-cached query would rebuild itself with the old posts.
+  // `updateTag`, not `revalidateTag`, because this is a Server Action and
+  // the writer must see their own change on the next request.
+  updateTag(POSTS_CACHE_TAG);
+
   revalidatePath("/blog");
   revalidatePath(`/blog/${oldSlug}`);
   if (newSlug !== oldSlug) revalidatePath(`/blog/${newSlug}`);

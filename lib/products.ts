@@ -53,6 +53,15 @@ export interface Product {
    *  ships inside another — the hero's "Explore apps" strip lists only
    *  the standalone ones, while the catalogue below lists everything. */
   isApp: boolean;
+  /**
+   * What the product does, as short factual lines for /products.
+   *
+   * Each one must be something the product ACTUALLY does today, taken
+   * from its own published pages — not a roadmap and not a pitch. Left
+   * out entirely for anything unreleased, which /products then says
+   * plainly instead of inventing a feature list.
+   */
+  capabilities?: string[];
 }
 
 export const PRODUCTS: Product[] = [
@@ -73,6 +82,17 @@ export const PRODUCTS: Product[] = [
       height: 844,
     },
     isApp: true,
+    // From Instant's own published pages and privacy policy: the inbox,
+    // contacts and custom fields, pipelines and deal stages, campaigns,
+    // automations and flows, forms, and call records.
+    capabilities: [
+      "One shared team inbox for WhatsApp, Instagram and Messenger",
+      "Contacts, segments, tags and custom fields",
+      "Sales pipelines with deal stages",
+      "Broadcast campaigns",
+      "No-code automations, flows and forms",
+      "WhatsApp calling",
+    ],
   },
   {
     slug: "ask-maya",
@@ -87,6 +107,17 @@ export const PRODUCTS: Product[] = [
     hue: "oklch(0.55 0.19 305)",
     href: "https://instant.nebkern.com/ask-maya",
     isApp: false,
+    // Each line is stated on Instant's published Privacy Policy or
+    // Subprocessor List: grounded on the business's own knowledge base,
+    // bring-your-own AI key with those three providers, and no training
+    // of general-purpose models on customer conversations.
+    capabilities: [
+      "Answers from a business's own catalogue, prices and policies",
+      "Drafts a reply for an agent, or handles the conversation itself",
+      "Grounded on the knowledge base the business uploads",
+      "Bring your own OpenAI, Anthropic or OpenRouter key",
+      "Customer conversations are never used to train general-purpose models",
+    ],
   },
   {
     // TODO(nebkern): the name and status are the user's; the kicker and

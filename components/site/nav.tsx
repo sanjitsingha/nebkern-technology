@@ -19,21 +19,35 @@ type MenuItem = {
 /** Products come from the catalogue rather than a second hand-written
  *  list, so a product added to lib/products.ts appears here too. Only
  *  standalone apps — Ask Maya ships inside Instant. */
-const PRODUCT_ITEMS: MenuItem[] = PRODUCTS.filter((p) => p.isApp).map((p) => ({
-  label: p.name,
-  href: p.href,
-  note: p.href ? undefined : (p.statusLabel ?? STATUS_LABEL[p.status]),
-}));
+const PRODUCT_ITEMS: MenuItem[] = [
+  // The overview first: it is the one page that explains all of them.
+  { label: "All products", href: "/products" },
+  ...PRODUCTS.filter((p) => p.isApp).map((p) => ({
+    label: p.name,
+    href: p.href,
+    note: p.href ? undefined : (p.statusLabel ?? STATUS_LABEL[p.status]),
+  })),
+];
+
+/** The company's own pages. This replaced a bare "Company" link to the
+ *  homepage's `#company` anchor — which only resolved on the homepage and
+ *  went nowhere from every other page on the site. */
+const COMPANY_ITEMS: MenuItem[] = [
+  { label: "About", href: "/about" },
+  { label: "Careers", href: "/careers" },
+  { label: "Trust & security", href: "/trust" },
+  { label: "Contact", href: "/contact" },
+];
 
 const RESOURCE_ITEMS: MenuItem[] = [
-  { label: "Docs", href: LINKS.docs },
   { label: "Blog", href: "/blog" },
+  { label: "Docs", href: LINKS.docs },
   { label: "Newsletter", href: LINKS.newsletter },
-  { label: "Contact", href: "/contact" },
 ];
 
 const MENUS: { label: string; items: MenuItem[] }[] = [
   { label: "Products", items: PRODUCT_ITEMS },
+  { label: "Company", items: COMPANY_ITEMS },
   { label: "Resources", items: RESOURCE_ITEMS },
 ];
 
@@ -199,15 +213,6 @@ export function Nav() {
           </Link>
 
           <ul className="hidden items-center gap-7 md:flex">
-            <li>
-              <a
-                href="#company"
-                className="text-[1.0625rem] font-semibold text-ink transition-colors hover:text-accent"
-              >
-                Company
-              </a>
-            </li>
-
             {MENUS.map(({ label, items }) => (
               <li
                 key={label}
@@ -350,19 +355,7 @@ export function Nav() {
               </div>
             ))}
 
-            <ul className="border-t border-line-soft pt-4">
-              <li>
-                <a
-                  href="#company"
-                  onClick={() => setOpen(false)}
-                  className="block py-2 text-[0.9375rem] text-ink"
-                >
-                  Company
-                </a>
-              </li>
-            </ul>
-
-            <div className="mt-5">
+            <div className="mt-1 border-t border-line-soft pt-5">
               {/* Closes the drawer on the way: leaving it open behind a
                   modal stacks two overlays, and the drawer would still
                   be sitting there when the dialog is dismissed. */}

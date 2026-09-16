@@ -2,19 +2,21 @@ import type { Metadata } from "next";
 
 import { Nav } from "@/components/site/nav";
 import { Footer } from "@/components/site/footer";
+import { JsonLd } from "@/components/site/page";
+import { breadcrumbJsonLd, pageMetadata, webPageJsonLd } from "@/lib/seo";
 import { LINKS, SITE } from "@/lib/site";
 
-export const metadata: Metadata = {
+const DESCRIPTION = `How to reach ${SITE.name} — a software company in ${SITE.address}. Write to us and you will reach an engineer, not a queue.`;
+
+// Through `pageMetadata`: the old object set `openGraph` without the
+// site name or locale, and a shallow merge meant those two were dropped
+// from this page's link previews.
+export const metadata: Metadata = pageMetadata({
   title: "Contact",
-  description: `How to reach ${SITE.name} — a software company in ${SITE.address}. Write to us and you will reach an engineer, not a queue.`,
-  alternates: { canonical: "/contact" },
-  openGraph: {
-    title: `Contact ${SITE.name}`,
-    description: `How to reach ${SITE.name}, a software company in ${SITE.address}.`,
-    url: "/contact",
-    type: "website",
-  },
-};
+  description: DESCRIPTION,
+  path: "/contact",
+  shareTitle: `Contact ${SITE.name}`,
+});
 
 /* ============================================================
    Icons. Line-drawn at 24px to match the arrows already used
@@ -223,6 +225,21 @@ export default function ContactPage() {
         Skip to content
       </a>
 
+      <JsonLd
+        data={webPageJsonLd({
+          type: "ContactPage",
+          name: `Contact ${SITE.name}`,
+          description: DESCRIPTION,
+          path: "/contact",
+        })}
+      />
+      <JsonLd
+        data={breadcrumbJsonLd([
+          { name: "Home", path: "/" },
+          { name: "Contact", path: "/contact" },
+        ])}
+      />
+
       <Nav />
 
       <main id="main" className="flex-1">
@@ -234,9 +251,10 @@ export default function ContactPage() {
             <h1 className="display text-[clamp(2rem,4.2vw,3.25rem)] font-medium text-accent-fg text-balance">
               Looking for something in particular?
             </h1>
-            <p className="mt-4 text-lg text-accent-fg/80">
-              We are here to help.
-            </p>
+            {/* Full-strength white. At 80% it measured below the 4.5:1
+                contrast body text needs on this indigo, and Lighthouse
+                flagged it as the page's one accessibility failure. */}
+            <p className="mt-4 text-lg text-accent-fg">We are here to help.</p>
             {/* The one flash of gold on the page. It is the site's
                 `--warning` token rather than a new colour — on indigo it
                 does the job Zoho's yellow rule does. */}
