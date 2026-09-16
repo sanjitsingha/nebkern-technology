@@ -29,14 +29,8 @@ import { cn } from "@/lib/utils";
  * which is why the hero keeps its `overflow-hidden`.
  */
 export const BackgroundRippleEffect = ({
-  /** Both are only the first render's guess. Replaced by a measurement
-   *  as soon as the element has a size — see below. */
-  rows: initialRows = 16,
-  cols: initialCols = 44,
   cellSize = 28,
 }: {
-  rows?: number;
-  cols?: number;
   cellSize?: number;
 }) => {
   const [clickedCell, setClickedCell] = useState<{
@@ -63,8 +57,22 @@ export const BackgroundRippleEffect = ({
    * `repeat(auto-fill, …)` would hide inside the layout engine.
    */
   const ref = useRef<HTMLDivElement>(null);
-  const [cols, setCols] = useState(initialCols);
-  const [rows, setRows] = useState(initialRows);
+
+  /**
+   * Null until the box has been measured, and nothing is drawn until then.
+   *
+   * This used to render a guessed 44 × 16 grid on the server and replace
+   * it once measured. The grid is centred, so going from the guess to the
+   * real column count moved EVERY cell sideways — hundreds of elements
+   * covering most of the viewport — and Lighthouse measured it as a
+   * cumulative layout shift of 0.67 on the homepage, where Google treats
+   * anything over 0.1 as poor. An element that appears does not count as
+   * a shift; one that moves does. So the grid now appears once, at its
+   * real size, and fades in.
+   *
+   * It also keeps several hundred empty divs out of the server HTML.
+   */
+  const [grid, setGrid] = useState<{ cols: number; rows: number } | null>(null);
 
   useEffect(() => {
     const el = ref.current;
@@ -74,8 +82,10 @@ export const BackgroundRippleEffect = ({
       const { width, height } = entry.contentRect;
       // Ceil on both, so the last partial row and column are drawn and
       // clipped rather than leaving a gap at the edge.
-      setCols(Math.max(1, Math.ceil(width / cellSize)));
-      setRows(Math.max(1, Math.ceil(height / cellSize)));
+      setGrid({
+        cols: Math.max(1, Math.ceil(width / cellSize)),
+        rows: Math.max(1, Math.ceil(height / cellSize)),
+      });
     });
 
     observer.observe(el);
@@ -99,24 +109,30 @@ export const BackgroundRippleEffect = ({
           a box sized by its contents would just report the grid's own
           height back — the grid would never grow to fill the hero. */}
       <div className="relative h-full w-full overflow-hidden">
-        <DivGrid
-          key={`base-${rippleKey}`}
-          // Fades out towards the bottom so the grid never competes
-          // with the headline sitting on top of it — the same job the
-          // mask on the old `.grid-field` did.
-          className="mask-radial-from-30% mask-radial-at-top"
-          rows={rows}
-          cols={cols}
-          cellSize={cellSize}
-          borderColor="var(--cell-border-color)"
-          fillColor="var(--cell-fill-color)"
-          clickedCell={clickedCell}
-          onCellClick={(row, col) => {
-            setClickedCell({ row, col });
-            setRippleKey((k) => k + 1);
-          }}
-          interactive
-        />
+        {grid && (
+          <DivGrid
+            key={`base-${rippleKey}`}
+            // Fades out towards the bottom so the grid never competes
+            // with the headline sitting on top of it — the same job the
+            // mask on the old `.grid-field` did.
+            //
+            // The fade-in only on the first appearance: a click bumps
+            // `rippleKey` and remounts the grid, and fading the whole
+            // backdrop in again on every click would read as a glitch.
+            className={`${rippleKey === 0 ? "grid-fade-in " : ""}mask-radial-from-30% mask-radial-at-top`}
+            rows={grid.rows}
+            cols={grid.cols}
+            cellSize={cellSize}
+            borderColor="var(--cell-border-color)"
+            fillColor="var(--cell-fill-color)"
+            clickedCell={clickedCell}
+            onCellClick={(row, col) => {
+              setClickedCell({ row, col });
+              setRippleKey((k) => k + 1);
+            }}
+            interactive
+          />
+        )}
       </div>
     </div>
   );
