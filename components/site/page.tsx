@@ -417,34 +417,68 @@ export function Facts({
  */
 export function Faq({
   items,
+  variant = "card",
 }: {
   items: { question: string; answer: string }[];
+  /**
+   * `card` is the bordered panel the inner pages use. `plain` is rows on
+   * the page itself, separated by hairlines — for the homepage, where a
+   * second bordered slab under the ones already there would be one box
+   * too many.
+   */
+  variant?: "card" | "plain";
 }) {
+  const card = variant === "card";
+
   return (
-    <div className="faq divide-y divide-line-soft overflow-hidden rounded-lg border border-line bg-surface">
+    <div
+      className={`faq divide-y divide-line-soft ${
+        card ? "overflow-hidden rounded-lg border border-line bg-surface" : ""
+      }`}
+    >
       {items.map((item) => (
         <details key={item.question} className="group">
-          <summary className="flex cursor-pointer items-center justify-between gap-6 px-6 py-6 transition-colors hover:bg-surface-2/60 sm:px-8">
-            <h3 className="text-[1.0625rem] font-semibold tracking-[-0.012em] text-ink text-pretty">
+          <summary
+            className={`flex cursor-pointer items-center justify-between gap-6 transition-colors ${
+              card
+                ? "px-6 py-6 hover:bg-surface-2/60 sm:px-8"
+                : "py-8 hover:[&_h3]:text-accent"
+            }`}
+          >
+            <h3
+              className={`tracking-[-0.012em] text-ink text-pretty transition-colors ${
+                card
+                  ? "text-[1.0625rem] font-semibold"
+                  : "text-[1.125rem] font-medium sm:text-[1.25rem]"
+              }`}
+            >
               {item.question}
             </h3>
             <span
-              className="faq-plus grid size-8 shrink-0 place-items-center rounded-md border border-line text-muted transition-transform group-hover:border-accent group-hover:text-accent"
+              className={`faq-plus shrink-0 text-muted transition-transform ${
+                card
+                  ? "grid size-8 place-items-center rounded-md border border-line group-hover:border-accent group-hover:text-accent"
+                  : "group-hover:text-accent"
+              }`}
               aria-hidden="true"
             >
               <svg
                 viewBox="0 0 16 16"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth="1.6"
+                strokeWidth="1.5"
                 strokeLinecap="round"
-                className="h-3.5 w-3.5"
+                className={card ? "h-3.5 w-3.5" : "h-5 w-5"}
               >
                 <path d="M8 3v10M3 8h10" />
               </svg>
             </span>
           </summary>
-          <p className="max-w-3xl px-6 pb-7 text-[0.9375rem] leading-relaxed text-muted text-pretty sm:px-8">
+          <p
+            className={`max-w-3xl pb-8 leading-relaxed text-muted text-pretty ${
+              card ? "px-6 text-[0.9375rem] sm:px-8" : "-mt-2 text-[1.0625rem]"
+            }`}
+          >
             {item.answer}
           </p>
         </details>

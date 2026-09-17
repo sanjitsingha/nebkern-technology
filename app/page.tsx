@@ -5,6 +5,7 @@ import { Slider } from "@/components/site/slider";
 import { Banner } from "@/components/site/banner";
 import { Values } from "@/components/site/values";
 import { Statement } from "@/components/site/statement";
+import { HomeFaq } from "@/components/site/home-faq";
 import { Cta } from "@/components/site/cta";
 import { Footer } from "@/components/site/footer";
 import { Reveal } from "@/components/site/reveal";
@@ -47,6 +48,12 @@ export default function Home() {
         </Reveal>
         <Reveal>
           <Statement />
+        </Reveal>
+        {/* Answers before the ask: the questions come last, then the
+            closing panel. On paper rather than grey, so it separates
+            from the statement band directly above it. */}
+        <Reveal>
+          <HomeFaq />
         </Reveal>
         <Reveal>
           <Cta />

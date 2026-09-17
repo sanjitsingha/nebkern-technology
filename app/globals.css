@@ -148,6 +148,41 @@ body {
   transform: rotate(45deg);
 }
 
+/* Smooth open and close.
+
+   `::details-content` is the box a browser wraps a <details>'s content
+   in, and animating it is what makes a native disclosure expand instead
+   of jump. Three parts, all load-bearing:
+
+   - `interpolate-size: allow-keywords` is what allows a height
+     transition to run TO `auto` at all. Without it there is nothing to
+     animate towards but a hardcoded height, which a variable-length
+     answer does not have.
+   - `transition-behavior: allow-discrete` carries `content-visibility`
+     across the frame where the content stops being hidden. Without it
+     the panel animates open and then snaps shut on close.
+   - `overflow: clip` keeps the answer inside the box on the way.
+
+   A browser without `::details-content` — older Safari and Firefox —
+   opens instantly, which is what happened before this existed. The
+   global reduced-motion rule flattens it to nothing. */
+:root {
+  interpolate-size: allow-keywords;
+}
+
+.faq details::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    content-visibility 320ms;
+  transition-behavior: allow-discrete;
+}
+
+.faq details[open]::details-content {
+  block-size: auto;
+}
+
 /* Headlines carry negative tracking at display sizes — past ~32px the
    words otherwise sit too loose to read as one phrase. Manrope is
    already tighter than Inter was, so this is a lighter touch than the

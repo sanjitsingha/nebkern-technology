@@ -111,7 +111,7 @@ export const VALUES: {
  *  clipping on a narrow phone where four stacked values need more room
  *  than that. A fixed height would cut the last one in half on the
  *  devices least able to spare it. */
-const PANEL_H = 720;
+const PANEL_H = 560;
 
 /**
  * How far the panel rides up onto the banner above it.
@@ -152,24 +152,16 @@ export function Values() {
           className="flex flex-col justify-center rounded-lg border border-line bg-surface px-6 py-14 shadow-[0_-2px_40px_-12px_rgb(0_0_0/0.18)] sm:px-12 sm:py-16"
           style={{ minHeight: PANEL_H }}
         >
-          <div className="text-center">
-            <h2 className="mx-auto max-w-3xl text-[clamp(2rem,3.6vw,3rem)] leading-[1.1] font-semibold tracking-[-0.028em] text-ink text-balance">
-              The core values and principles that drive us
-            </h2>
+          {/* The heading is not here any more: it sits on the banner
+              above, which this panel rides up onto — so the picture
+              introduces the values and the panel carries them. The
+              section is labelled by that heading (`values-heading`),
+              which is why the two components have to stay adjacent.
 
-            {/* A short rule under the heading rather than a full-width
-                divider: it marks the end of the title without cutting
-                the panel in two. */}
-            <span
-              className="mx-auto mt-7 block h-[3px] w-12 bg-accent"
-              aria-hidden="true"
-            />
-          </div>
-
-          {/* Two up on anything above a phone. No dividers — the icons
+              Two up on anything above a phone. No dividers — the icons
               and the whitespace already separate the four, and rules as
               well would be a grid drawn inside a bordered panel. */}
-          <ul className="mt-12 grid gap-x-12 gap-y-11 sm:grid-cols-2">
+          <ul className="grid gap-x-12 gap-y-11 sm:grid-cols-2">
             {VALUES.map((value) => (
               <li key={value.title} className="flex gap-5">
                 <Icon color={value.color}>{value.icon}</Icon>
