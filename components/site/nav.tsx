@@ -117,6 +117,11 @@ function MenuRow({
   // 600, the same weight as the trigger that opens the menu. The rows
   // are not trying to sit below their parent in a hierarchy; the panel
   // already separates them from it, so they read as their own list.
+  // Untouched. A row's own padding is what sets the distance from one
+  // row to the next, so growing it would space the list out rather than
+  // pad the panel around it — and it is shared with the mobile sheet,
+  // where the list is not in a panel at all. The desktop panel carries
+  // the extra padding itself.
   const shared =
     "flex items-center gap-2.5 px-4 py-2.5 text-[0.9375rem] font-semibold whitespace-nowrap";
 
@@ -265,7 +270,13 @@ export function Nav() {
                   // it the gap between button and panel counts as
                   // "outside", and the menu closes as the pointer crosses.
                   <div className="absolute top-full left-0 pt-3">
-                    <ul className="min-w-60 rounded-sm border border-line bg-surface py-1.5 shadow-[0_10px_28px_-14px_rgb(0_0_0/0.22)]">
+                    {/* The padding is on the panel rather than on the
+                        rows. Nothing fills behind a row on hover — the
+                        colour change is the whole state — so padding the
+                        container costs no hit area, keeps the rows the
+                        same object the mobile sheet uses, and leaves the
+                        distance between them exactly as it was. */}
+                    <ul className="min-w-64 rounded-sm border border-line bg-surface p-4 shadow-[0_10px_28px_-14px_rgb(0_0_0/0.22)]">
                       {items.map((item) => (
                         <MenuRow
                           key={item.label}
