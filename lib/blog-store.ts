@@ -2,7 +2,7 @@ import "server-only";
 
 import { cache } from "react";
 
-import { blockText, type Block, type Post } from "@/lib/blog";
+import { blockText, excerptFrom, type Block, type Post } from "@/lib/blog";
 import type { Database, Json } from "@/lib/database.types";
 import { adminDb, publicDb } from "@/lib/supabase";
 
@@ -46,9 +46,9 @@ const UNIQUE_VIOLATION = "23505";
  *  published the same day so the order never shuffles between renders. */
 const NEWEST_FIRST = { ascending: false } as const;
 
-/** A row as the app sees it. The table is flat (cover, author and SEO
- *  are columns); `Post` groups them back into the objects the pages
- *  already expect, and omits what is unset rather than carrying nulls. */
+/** A row as the app sees it. The table is flat (cover and SEO are
+ *  columns); `Post` groups them back into the objects the pages already
+ *  expect, and omits what is unset rather than carrying nulls. */
 function fromRow(row: PostRow): Post {
   const seo = {
     ...(row.seo_title ? { title: row.seo_title } : {}),
@@ -56,24 +56,29 @@ function fromRow(row: PostRow): Post {
     ...(row.noindex ? { noindex: true } : {}),
   };
 
+  // Stored as JSON and never queried into; the page renders it. Every
+  // row is written by this file or the seed, both in the current block
+  // shape, so it is read back as-is.
+  const body = row.body as unknown as Block[];
+
   return {
     slug: row.slug,
     title: row.title,
-    excerpt: row.excerpt,
+    // Derived here, not read from `row.excerpt`, so it always matches
+    // the body it summarises. The column is still written on save — it
+    // keeps a row readable on its own in the Supabase dashboard — but
+    // this is the one that reaches a page, which means posts written
+    // before the excerpt was a field need no backfill.
+    excerpt: excerptFrom(body),
     date: row.published_on,
     ...(row.updated_at ? { updatedAt: row.updated_at } : {}),
     readMinutes: row.read_minutes,
-    tag: row.tag,
     ...(row.cover_src
       ? { cover: { src: row.cover_src, alt: row.cover_alt ?? "" } }
       : {}),
     ...(row.draft ? { draft: true } : {}),
-    author: { name: row.author_name, role: row.author_role },
     ...(Object.keys(seo).length > 0 ? { seo } : {}),
-    // Stored as JSON and never queried into; the page renders it. Every
-    // row is written by this file or the seed, both in the current block
-    // shape, so it is read back as-is.
-    body: row.body as unknown as Block[],
+    body,
   };
 }
 
@@ -88,11 +93,11 @@ function toRow(post: Post): PostWrite {
     published_on: post.date,
     updated_at: post.updatedAt ?? null,
     read_minutes: post.readMinutes,
-    tag: post.tag,
     cover_src: post.cover?.src ?? null,
     cover_alt: post.cover?.alt ?? null,
-    author_name: post.author.name,
-    author_role: post.author.role,
+    // `tag`, `author_name` and `author_role` are left alone. Posts have
+    // no category and no author any more; the columns stay so an older
+    // row is not rewritten by a migration, and nothing reads them.
     seo_title: post.seo?.title ?? null,
     seo_description: post.seo?.description ?? null,
     noindex: post.seo?.noindex ?? false,

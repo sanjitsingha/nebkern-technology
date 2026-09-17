@@ -46,7 +46,6 @@ export default async function BlogIndex() {
     excerpt: post.excerpt,
     date: post.date,
     readMinutes: post.readMinutes,
-    tag: post.tag,
     cover: post.cover,
   }));
 

@@ -18,12 +18,11 @@ import { formatDate, type PostSummary } from "@/lib/blog";
  * the index's search component, without either needing to know.
  */
 
-/** Tag · date · read time. The order the site uses everywhere. */
+/** Date · read time. The order the site uses everywhere. The category
+ *  that used to lead this line is gone — see `Post` in lib/blog.ts. */
 export function Meta({ post }: { post: PostSummary }) {
   return (
     <>
-      <span className="font-medium text-accent">{post.tag}</span>
-      <span aria-hidden="true">·</span>
       <time dateTime={post.date}>{formatDate(post.date)}</time>
       <span aria-hidden="true">·</span>
       <span>{post.readMinutes} min read</span>
@@ -41,16 +40,17 @@ export function PostRow({ post }: { post: PostSummary }) {
         // fixed `1fr 20rem` would then hold 20rem of empty gutter open
         // beside the text for the sake of an element that is not there.
         className={`group grid gap-5 py-8 ${
-          post.cover ? "lg:grid-cols-[1fr_20rem] lg:items-start lg:gap-10" : ""
+          post.cover ? "lg:grid-cols-[20rem_1fr] lg:items-start lg:gap-10" : ""
         }`}
       >
-        {/* First in the DOM so the picture leads the stacked row on a
-            phone; `lg:order-last` sends it to the right-hand column once
-            the row goes two-up. */}
+        {/* First in the DOM, and now first on the page too: the picture
+            leads the stacked row on a phone and takes the left-hand
+            column once the row goes two-up. It used to be sent right
+            with `lg:order-last`, which meant the reading order and the
+            visual order disagreed for no gain. */}
         <PostCover
           cover={post.cover}
           sizes="(min-width: 1024px) 320px, calc(100vw - 2.5rem)"
-          className="lg:order-last"
         />
 
         <div>

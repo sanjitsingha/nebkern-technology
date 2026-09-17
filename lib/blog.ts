@@ -170,10 +170,10 @@ export const DEFAULT_TITLE = "Untitled";
  * It lives HERE rather than in blog-store.ts, where it used to, because
  * the editor mirrors the title into the slug field as you type and that
  * happens in the browser. blog-store is server-only — it holds the
- * database clients — so a Client Component cannot import from it at all — deliberately. This function
- * is pure string work with no such dependency, so this is where it
- * belongs, and both halves now derive a slug the same way by
- * construction rather than by two implementations agreeing.
+ * database clients — so a Client Component cannot import from it at
+ * all. This function is pure string work with no such dependency, so
+ * this is where it belongs, and both halves now derive a slug the same
+ * way by construction rather than by two implementations agreeing.
  */
 export function slugify(title: string): string {
   return title
@@ -181,6 +181,31 @@ export function slugify(title: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 80);
+}
+
+/**
+ * The opening of a post, for the index card and the meta description.
+ *
+ * Derived rather than typed. A hand-written excerpt is one more field to
+ * fill in, and the one most often left empty or left stale after the
+ * opening paragraph is rewritten — which then shows on the blog index
+ * and in search results, the two places a reader sees before deciding
+ * whether to click.
+ *
+ * 160 characters because that is roughly where Google truncates a
+ * result snippet, and it cuts on a word boundary so the tail is never a
+ * half word.
+ */
+export function excerptFrom(body: Block[], limit = 160): string {
+  const text = body.map(blockText).join(" ").replace(/\s+/g, " ").trim();
+
+  if (text.length <= limit) return text;
+
+  const cut = text.slice(0, limit);
+  const lastSpace = cut.lastIndexOf(" ");
+  // Only break at the space if it leaves a sensible amount of text;
+  // a single very long word should be cut rather than dropped.
+  return `${(lastSpace > limit * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd()}…`;
 }
 
 export interface Post {
@@ -204,7 +229,10 @@ export interface Post {
    */
   updatedAt?: string;
   readMinutes: number;
-  tag: string;
+  // No `tag`. A single-word category on every post is a taxonomy with
+  // one level and no index page behind it — nothing links to "all posts
+  // tagged X", so it was a label that could not be acted on. The column
+  // is still in the table, unread, so no row had to be rewritten.
   /**
    * Cover image, shown on the index and above the article.
    *
@@ -237,7 +265,11 @@ export interface Post {
    * is a different feature, and a half-implemented one is how drafts leak.
    */
   draft?: boolean;
-  author: { name: string; role: string };
+  // No author. Posts are published by the company, not by a named
+  // person: the byline, the author fields in /admin and the Person in
+  // the article's structured data were all removed together, and the
+  // structured data now credits the Organization instead. The database
+  // still has `author_name` / `author_role` columns; nothing reads them.
   /**
    * Search-engine overrides. All optional, and all fall back to the
    * post's own fields — a writer who fills none gets sensible metadata,
@@ -272,7 +304,7 @@ export interface Post {
  * whole `Post` objects would serialise every article's blocks into the
  * page just to print five titles and excerpts.
  */
-export type PostSummary = Omit<Post, "body" | "author">;
+export type PostSummary = Omit<Post, "body">;
 
 /**
  * Formats an ISO date as "28 August 2026".

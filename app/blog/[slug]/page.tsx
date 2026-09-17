@@ -4,11 +4,11 @@ import { notFound } from "next/navigation";
 
 import { Nav } from "@/components/site/nav";
 import { PostCover } from "@/components/site/post-cover";
-import { CopyLink } from "@/components/site/copy-link";
+import { ShareLinks } from "@/components/site/share-links";
 import { ListLabel, PostRow } from "@/components/site/post-row";
 import { Footer } from "@/components/site/footer";
 import { JsonLd } from "@/components/site/page";
-import { breadcrumbJsonLd } from "@/lib/seo";
+import { ORGANIZATION_ID, breadcrumbJsonLd } from "@/lib/seo";
 import {
   blockText,
   formatDate,
@@ -66,7 +66,6 @@ export async function generateMetadata({
     // sitemap while telling crawlers not to index it is a contradiction
     // Search Console reports as an error rather than ignoring.
     ...(post.seo?.noindex ? { robots: { index: false, follow: true } } : {}),
-    authors: [{ name: post.author.name }],
     openGraph: {
       siteName: SITE.shortName,
       locale: "en_IN",
@@ -78,7 +77,6 @@ export async function generateMetadata({
       // Distinct from `publishedTime`: an edit should tell a crawler
       // the page changed without restating it as newly published.
       modifiedTime: post.updatedAt ?? post.date,
-      authors: [post.author.name],
       // A post with a cover shares its cover. One without gets a card
       // drawn with its own title (app/blog/[slug]/card.png). This used to
       // assume the site-wide card would fill the gap — it does not: once
@@ -348,11 +346,10 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
     description: post.seo?.description?.trim() || post.excerpt,
     datePublished: post.date,
     dateModified: post.updatedAt ?? post.date,
-    author: {
-      "@type": "Person",
-      name: post.author.name,
-      jobTitle: post.author.role,
-    },
+    // The company, not a person. Posts carry no byline, and naming an
+    // author in structured data that the page itself does not show is
+    // exactly the kind of mismatch a rich-results check flags.
+    author: { "@id": ORGANIZATION_ID },
     publisher: {
       "@type": "Organization",
       name: SITE.name,
@@ -369,7 +366,6 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
       "@type": "WebPage",
       "@id": `${SITE.url}/blog/${post.slug}`,
     },
-    keywords: post.tag,
     // `\s+`, not `s+`. The missing backslash split on the LETTER s, so
     // the count was words-plus-every-s rather than words.
     wordCount: post.body.map(blockText).join(" ").split(/\s+/).filter(Boolean)
@@ -413,7 +409,7 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
                 column moves together (header, cover, body and the
                 "Keep reading" list all read this width), so the page
                 stays one measure rather than three. */}
-            <div className="mx-auto max-w-4xl px-5 pt-12 pb-12 sm:px-8 sm:pt-16 sm:pb-14">
+            <div className="mx-auto max-w-4xl px-5 pt-12 pb-8 sm:px-8 sm:pt-16 sm:pb-9">
               {/* The "← All posts" link that used to open this column is
                   gone. The nav above carries Blog on every page, so it
                   was a second door to the same place, sitting in the one
@@ -430,45 +426,26 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
                 {post.title}
               </h1>
 
-              {/* Byline and article meta on one rule. The tag, date and
-                  read time used to sit above the headline, where they
-                  were the first thing read on the page — ahead of the
-                  title itself. Down here they answer the questions a
-                  reader actually has at that moment: who wrote this, and
-                  how long is it.
+              {/* Article meta on one rule. The byline that used to sit
+                  beside it is gone with the author field: posts are
+                  published by the company, so a name and a job title
+                  under every headline was furniture. What is left is
+                  what a reader actually wants at this moment — what it
+                  is about, when it was written, how long it is, and a
+                  way to keep the link. */}
+              <div className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-3 border-t border-line-soft pt-6 text-[0.8125rem] text-muted">
+                <time dateTime={post.date}>{formatDate(post.date)}</time>
+                <span aria-hidden="true">·</span>
+                <span>{post.readMinutes} min read</span>
 
-                  `flex-wrap` with `sm:ml-auto` on the meta: the two
-                  groups share a line and sit at opposite ends when there
-                  is room, and the meta drops below the author when there
-                  is not. */}
-              <div className="mt-8 flex flex-wrap items-center gap-x-6 gap-y-4 border-t border-line-soft pt-6">
-                <div className="flex items-center gap-3">
-                  <span
-                    className="grid size-9 shrink-0 place-items-center bg-accent text-[0.8125rem] font-semibold text-accent-fg"
-                    aria-hidden="true"
-                  >
-                    {post.author.name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")}
-                  </span>
-                  <span className="text-[0.875rem]">
-                    <span className="block font-medium text-ink">
-                      {post.author.name}
-                    </span>
-                    <span className="block text-muted">{post.author.role}</span>
-                  </span>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.8125rem] text-muted sm:ml-auto">
-                  <span className="font-medium text-accent">{post.tag}</span>
-                  <span aria-hidden="true">·</span>
-                  <time dateTime={post.date}>{formatDate(post.date)}</time>
-                  <span aria-hidden="true">·</span>
-                  <span>{post.readMinutes} min read</span>
-                  <span aria-hidden="true">·</span>
-                  <CopyLink slug={post.slug} />
-                </div>
+                {/* Pushed to the far end of this same line rather than
+                    given a row of its own: sharing is something a reader
+                    does after reading, so it should not be a block of
+                    its own between the headline and the first sentence.
+                    `gap-y-3` is for the wrap on a phone, where the
+                    circles drop below the date and need more than the
+                    1px of breathing room the text line wanted. */}
+                <ShareLinks slug={post.slug} title={post.title} />
               </div>
             </div>
           </header>
@@ -480,19 +457,24 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
 
               The guard is on the wrapper, not just inside `PostCover`.
               The component already renders nothing without a cover, but
-              this padded div would still open `pt-10` of space above a
-              body that then began with no picture in it. */}
+              this padded div would still open its top padding above a
+              body that then began with no picture in it.
+
+              This `pt` and the header's `pb` stack, so the two together
+              are the whole gap under the meta line. At `pb-14` + `pt-12`
+              that came to 104px — nearly twice the 56px above the meta
+              line, which read as the header having lost its footing. */}
           {post.cover && (
-            <div className="mx-auto max-w-4xl px-5 pt-10 sm:px-8 sm:pt-12">
-              {/* 21:9, the same ratio the index's lead card uses. That
-                  keeps one shape for a cover running the full width of a
-                  column and 16:9 for the thumbnails — at this measure
-                  16:9 was a 432px block sitting between the byline and
-                  the first sentence. */}
+            <div className="mx-auto max-w-4xl px-5 pt-8 sm:px-8 sm:pt-9">
+              {/* 16:9, so the picture is 432px tall in this 768px
+                  column rather than the 329px that 21:9 gave it. The
+                  index's lead card keeps 21:9: it runs 1088px wide, so
+                  the same ratio there is already 466px, and matching the
+                  numbers matters more here than matching the shape. */}
               <PostCover
                 cover={post.cover}
-                ratio="21 / 9"
-                sizes="(min-width: 768px) 768px, calc(100vw - 2.5rem)"
+                ratio="16 / 9"
+                sizes="(min-width: 896px) 832px, (min-width: 640px) calc(100vw - 4rem), calc(100vw - 2.5rem)"
               />
             </div>
           )}

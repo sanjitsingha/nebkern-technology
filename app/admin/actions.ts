@@ -11,7 +11,13 @@ import {
   destroySession,
   hasValidSession,
 } from "@/lib/admin-auth";
-import { DEFAULT_TITLE, slugify, type Block, type Post } from "@/lib/blog";
+import {
+  DEFAULT_TITLE,
+  excerptFrom,
+  slugify,
+  type Block,
+  type Post,
+} from "@/lib/blog";
 import {
   BLOG_IMAGE_BUCKET,
   IMAGE_TYPES,
@@ -103,17 +109,13 @@ function postFromForm(formData: FormData): Post {
   const post: Post = {
     slug: slugify(String(formData.get("slug") ?? "") || title),
     title,
-    excerpt: String(formData.get("excerpt") ?? "").trim(),
+    // Derived from the body, not typed into a field. See `excerptFrom`.
+    excerpt: excerptFrom(body),
     // Not a field any more. A new post is dated the day it is created,
     // and `savePostAction` puts the original date back when this is an
     // edit — so the published date is the day it first existed and
     // never moves, while `updatedAt` below carries every change.
     date: today(),
-    tag: String(formData.get("tag") ?? "").trim(),
-    author: {
-      name: String(formData.get("authorName") ?? "").trim(),
-      role: String(formData.get("authorRole") ?? "").trim(),
-    },
     body,
     // Derived, never typed. A hand-entered read time is one more thing
     // to forget when a post is edited.

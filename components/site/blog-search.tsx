@@ -20,11 +20,11 @@ import { type PostSummary } from "@/lib/blog";
  * page just to render five titles.
  */
 
-/** Title, excerpt and tag — what a reader would expect to match on. The
- *  body is not here to search, which is the honest limit of a filter
- *  built on the index's own data. */
+/** Title and excerpt — what a reader would expect to match on. The body
+ *  is not here to search, which is the honest limit of a filter built on
+ *  the index's own data. */
 function matchesQuery(post: PostSummary, q: string) {
-  return `${post.title} ${post.excerpt} ${post.tag}`.toLowerCase().includes(q);
+  return `${post.title} ${post.excerpt}`.toLowerCase().includes(q);
 }
 
 /** The newest post, given the wide treatment. Only shown on the
@@ -32,10 +32,12 @@ function matchesQuery(post: PostSummary, q: string) {
  *  taller than the others is noise, not hierarchy. */
 function LeadCard({ post }: { post: PostSummary }) {
   return (
-    <Link
-      href={`/blog/${post.slug}`}
-      className="group block rounded-md border border-line bg-surface p-7 transition-colors hover:border-ink/20 sm:p-10"
-    >
+    // No border, no padding, no panel behind it. The lead post sits
+    // directly on the page now, so the headline is the biggest thing on
+    // it rather than the box around it. The title taking the accent on
+    // hover replaces the border that used to darken — the rows below do
+    // exactly the same, so the whole list answers a pointer one way.
+    <Link href={`/blog/${post.slug}`} className="group block">
       {/* Above the meta, not beside it — at this width a cover sharing a
           row with the headline would leave both too narrow to carry the
           card. Full width of the container on every breakpoint, capped
@@ -51,7 +53,7 @@ function LeadCard({ post }: { post: PostSummary }) {
       <PostCover
         cover={post.cover}
         ratio="21 / 9"
-        sizes="(min-width: 1152px) 1024px, (min-width: 640px) calc(100vw - 8rem), calc(100vw - 6.5rem)"
+        sizes="(min-width: 1152px) 1088px, (min-width: 640px) calc(100vw - 4rem), calc(100vw - 2.5rem)"
         className="mb-7"
       />
 
@@ -63,11 +65,17 @@ function LeadCard({ post }: { post: PostSummary }) {
           768px inside a card that is nearly 990px wide, and
           `text-balance` then shrank it further to the narrowest width
           that kept the same line count. Both gone. */}
-      <h2 className="display mt-4 text-[clamp(1.5rem,2.8vw,2.25rem)] font-medium text-ink text-pretty">
+      <h2 className="display mt-4 text-[clamp(1.5rem,2.8vw,2.25rem)] font-medium text-ink text-pretty transition-colors group-hover:text-accent">
         {post.title}
       </h2>
 
-      <p className="mt-4 max-w-2xl text-[1.0625rem] leading-relaxed text-muted text-pretty">
+      {/* Full width, like the headline above it. The `max-w-2xl` that
+          used to be here capped this at 672px inside a ~1088px card,
+          which read as an indent rather than as a measure. It was
+          guarding line length against a hand-typed excerpt of any
+          length; the derived one stops at 160 characters, which is
+          under two lines at this width. */}
+      <p className="mt-4 text-[1.0625rem] leading-relaxed text-muted text-pretty">
         {post.excerpt}
       </p>
 
@@ -189,15 +197,24 @@ export function BlogSearch({ posts }: { posts: PostSummary[] }) {
             <>
               <LeadCard post={lead} />
 
-              <div className="mt-14">
-                <ListLabel>Recent posts</ListLabel>
-              </div>
+              {/* Only once there is a second post. With one post the
+                  lead card IS the whole blog, and this printed a
+                  "Recent posts" heading with a rule under it and
+                  nothing below — a section announcing its own
+                  emptiness. */}
+              {rest.length > 0 && (
+                <>
+                  <div className="mt-14">
+                    <ListLabel>Recent posts</ListLabel>
+                  </div>
 
-              <ul className="divide-y divide-line-soft">
-                {rest.map((post) => (
-                  <PostRow key={post.slug} post={post} />
-                ))}
-              </ul>
+                  <ul className="divide-y divide-line-soft">
+                    {rest.map((post) => (
+                      <PostRow key={post.slug} post={post} />
+                    ))}
+                  </ul>
+                </>
+              )}
             </>
           )}
         </div>

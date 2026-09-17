@@ -67,8 +67,6 @@ export default async function PostsPage() {
                 </span>
 
                 <p className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[0.8125rem] text-muted">
-                  <span className="font-medium text-accent">{post.tag}</span>
-                  <span aria-hidden="true">·</span>
                   <time dateTime={post.date}>{formatDate(post.date)}</time>
                   <span aria-hidden="true">·</span>
                   {/* A draft has no live URL, so showing one that 404s

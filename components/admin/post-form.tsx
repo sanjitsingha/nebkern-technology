@@ -6,7 +6,13 @@ import { useActionState, useRef, useState } from "react";
 import { savePostAction, type FormState } from "@/app/admin/actions";
 import { BodyEditor } from "@/components/admin/editor";
 import { ImageUploadButton } from "@/components/admin/image-upload-button";
-import { DEFAULT_TITLE, slugify, type Block, type Post } from "@/lib/blog";
+import {
+  DEFAULT_TITLE,
+  excerptFrom,
+  slugify,
+  type Block,
+  type Post,
+} from "@/lib/blog";
 import { isAllowedImageUrl } from "@/lib/media";
 import { SITE } from "@/lib/site";
 
@@ -91,7 +97,10 @@ export function PostForm({ post }: { post?: Post }) {
   // Mirrored into state only because the SEO preview reads them live.
   // A new post opens empty, so the placeholder shows.
   const [title, setTitle] = useState(post?.title ?? "");
-  const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
+  // Not a field any more: the excerpt is the opening of the body, so the
+  // SERP preview below derives it from `body` exactly as the save action
+  // will. There is nothing to type and nothing to keep in step.
+  const excerpt = excerptFrom(body);
   const [slug, setSlug] = useState(post?.slug ?? "");
 
   // Whether the slug has been typed in by hand. Until it has, the field
@@ -453,44 +462,11 @@ export function PostForm({ post }: { post?: Post }) {
                   />
                 </Panel>
 
-                {/* Was "Excerpt", which is the word the data model uses;
-                    this is the word a person uses. The field name stays
-                    `excerpt` so nothing downstream has to change. */}
-                <Panel>
-                  <textarea
-                    name="excerpt"
-                    value={excerpt}
-                    onChange={(e) => setExcerpt(e.target.value)}
-                    rows={4}
-                    placeholder="Short description"
-                    aria-label="Short description"
-                    className={`${FIELD} resize-y`}
-                  />
-                </Panel>
-
-                <Panel>
-                  <input
-                    name="tag"
-                    defaultValue={post?.tag}
-                    placeholder="Tag"
-                    aria-label="Tag"
-                    className={FIELD}
-                  />
-                  <input
-                    name="authorName"
-                    defaultValue={post?.author.name}
-                    placeholder="Author"
-                    aria-label="Author"
-                    className={FIELD}
-                  />
-                  <input
-                    name="authorRole"
-                    defaultValue={post?.author.role}
-                    placeholder="Author role"
-                    aria-label="Author role"
-                    className={FIELD}
-                  />
-                </Panel>
+                {/* The short description, the author fields and the tag
+                    are all gone. The description is now the opening of
+                    the body — see `excerptFrom` — posts carry no byline,
+                    and there is no category any more, so the slug and
+                    the cover are all this column still holds. */}
               </div>
 
               <Panel>

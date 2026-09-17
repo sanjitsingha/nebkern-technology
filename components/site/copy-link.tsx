@@ -3,16 +3,26 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * "Copy link" for an article, sitting in the byline beside the read
- * time.
+ * "Copy link" for an article — the last icon in its share row.
  *
  * The URL is built in the browser from `location.origin` rather than
  * from SITE.url, so a link copied on localhost or a Vercel preview
  * points at the site the reader is actually on. Only the origin is
  * taken — a query string or hash the reader arrived with is not theirs
- * to pass on.
+ * to pass on. `ShareLinks` deliberately does the opposite: see the note
+ * there.
+ *
+ * `className` comes from `ShareLinks` so this circle is the same object
+ * as the three beside it, defined once where the row is laid out rather
+ * than copied into both files and left to drift.
  */
-export function CopyLink({ slug }: { slug: string }) {
+export function CopyLink({
+  slug,
+  className = "",
+}: {
+  slug: string;
+  className?: string;
+}) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -43,25 +53,29 @@ export function CopyLink({ slug }: { slug: string }) {
 
   return (
     <span className="relative inline-flex">
+      {/* Icon only now that it sits in a row of circles. The word "Copy
+          link" went with the pill it used to be; the label it carried
+          is on `aria-label`, so nothing was lost to a screen reader. */}
       <button
         type="button"
         onClick={handleCopy}
-        className="inline-flex items-center gap-1.5 text-[0.8125rem] text-muted transition-colors hover:text-accent"
+        aria-label="Copy a link to this post"
+        title="Copy link"
+        className={className}
       >
         <svg
-          viewBox="0 0 16 16"
+          viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.5"
+          strokeWidth="1.7"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="h-3.5 w-3.5"
+          className="h-[1.05rem] w-[1.05rem]"
           aria-hidden="true"
         >
-          <path d="M6.5 9.5a2.5 2.5 0 0 0 3.6.1l2.3-2.3a2.55 2.55 0 0 0-3.6-3.6l-.8.8" />
-          <path d="M9.5 6.5a2.5 2.5 0 0 0-3.6-.1L3.6 8.7a2.55 2.55 0 0 0 3.6 3.6l.8-.8" />
+          <path d="M9.8 14.2a3.8 3.8 0 0 0 5.5.1l3.4-3.4a3.9 3.9 0 0 0-5.5-5.5l-1.2 1.2" />
+          <path d="M14.2 9.8a3.8 3.8 0 0 0-5.5-.1l-3.4 3.4a3.9 3.9 0 0 0 5.5 5.5l1.2-1.2" />
         </svg>
-        Copy link
       </button>
 
       {/* The visible bubble is decorative — `aria-hidden`, because the

@@ -29,5 +29,5 @@ export async function GET(
   const post = await getPublishedPost(slug);
   if (!post) return new Response("Not found", { status: 404 });
 
-  return renderOgImage({ eyebrow: post.tag || "Blog", title: post.title });
+  return renderOgImage({ eyebrow: "Blog", title: post.title });
 }
