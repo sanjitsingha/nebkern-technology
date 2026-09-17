@@ -54,7 +54,7 @@ export function Hero() {
           backdrop paints over the headline and eats clicks meant for
           the button. The column width is unchanged. */}
       <div className="pointer-events-none relative z-10 mx-auto w-full max-w-6xl px-5 pt-12 pb-36 sm:px-8 sm:pt-16 sm:pb-44">
-        <div className="max-w-5xl">
+        <div className="mx-auto flex max-w-5xl flex-col items-center text-center">
           {/* Fluid rather than a fixed size with one `sm:` step. Two
               lines is a function of characters-per-line, so a fixed
               60px holds at 1280px and spills to three around 950px —
@@ -76,7 +76,7 @@ export function Hero() {
           {/* One action. The nav's "Talk to us" and the closing panel
               both still carry contact, so the hero does not need to
               offer a second door on the way in. */}
-          <div className="mt-9">
+          <div className="mt-9 flex justify-center">
             <a
               href="#products"
               className="pointer-events-auto inline-flex items-center justify-center gap-2 rounded-md bg-accent px-5 py-3 text-[0.9375rem] font-medium text-accent-fg transition-colors hover:bg-accent-hover"

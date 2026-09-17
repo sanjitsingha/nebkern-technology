@@ -27,7 +27,13 @@ import type { ReactNode } from "react";
  *  `currentColor` and the site's stroke weight instead of arriving with
  *  their own. Deliberately distinct silhouettes — a stack and a cube at
  *  this size read as the same shape. */
-function Icon({ children }: { children: ReactNode }) {
+function Icon({
+  children,
+  color = "text-accent",
+}: {
+  children: ReactNode;
+  color?: string;
+}) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -36,7 +42,7 @@ function Icon({ children }: { children: ReactNode }) {
       strokeWidth="1.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="h-8 w-8 shrink-0 text-accent"
+      className={`h-8 w-8 shrink-0 ${color}`}
       aria-hidden="true"
     >
       {children}
@@ -46,10 +52,16 @@ function Icon({ children }: { children: ReactNode }) {
 
 /** Exported: /about renders the same four values in its own layout, so
  *  the company states its values in exactly one set of words. */
-export const VALUES: { title: string; body: string; icon: ReactNode }[] = [
+export const VALUES: {
+  title: string;
+  body: string;
+  color: string;
+  icon: ReactNode;
+}[] = [
   {
     title: "We build it and we run it",
     body: "We write the code, own the repositories and run the servers. Being an official Meta Tech Provider is our own integration with the WhatsApp Business Platform — not a licence bought from a middleman who could withdraw it.",
+    color: "text-blue-600",
     icon: (
       <>
         <rect x="3" y="4" width="18" height="6" />
@@ -61,6 +73,7 @@ export const VALUES: { title: string; body: string; icon: ReactNode }[] = [
   {
     title: "Your data stays in India",
     body: "Everything runs on infrastructure we operate, inside the country. Nothing critical sits on a platform we cannot get into at two in the morning, and no reseller stands between you and the systems your business depends on.",
+    color: "text-emerald-600",
     icon: (
       <>
         <path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6l7-3z" />
@@ -71,6 +84,7 @@ export const VALUES: { title: string; body: string; icon: ReactNode }[] = [
   {
     title: "Products, not one-off projects",
     body: "We build software we keep running, so improvements arrive without a fresh invoice. A build nobody maintains after handover is the opposite of what we are set up to do.",
+    color: "text-amber-600",
     icon: (
       <>
         <path d="M12 3l9 5-9 5-9-5 9-5z" />
@@ -82,6 +96,7 @@ export const VALUES: { title: string; body: string; icon: ReactNode }[] = [
   {
     title: "You reach the people who built it",
     body: "The person who answers is the person who can fix it — no account manager relaying a ticket to a team you never meet. And if you ever outgrow us, export is a feature, not a favour.",
+    color: "text-purple-600",
     icon: (
       <>
         <path d="M20 13.5a2 2 0 0 1-2 2H8l-4 3.5V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7.5z" />
@@ -157,7 +172,7 @@ export function Values() {
           <ul className="mt-12 grid gap-x-12 gap-y-11 sm:grid-cols-2">
             {VALUES.map((value) => (
               <li key={value.title} className="flex gap-5">
-                <Icon>{value.icon}</Icon>
+                <Icon color={value.color}>{value.icon}</Icon>
 
                 <div>
                   <h3 className="text-[1.1875rem] font-semibold tracking-[-0.018em] text-ink text-balance">
