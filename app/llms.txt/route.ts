@@ -63,6 +63,7 @@ third party's account.
 
 - [About the company](${SITE_URL}/about): who Nebkern is, how it builds, and answers to common questions.
 - [Products](${SITE_URL}/products): every product, what each does today, and its status.
+- [Maya playground](${SITE_URL}/maya-playground): try Ask Maya, the AI agent inside Instant, against a sample knowledge base or your own text.
 - [Trust & security](${SITE_URL}/trust): registration details, how customer data is protected, what is not claimed, and every policy.
 - [Careers](${SITE_URL}/careers): how the team works and how to get in touch about roles.
 - [Contact](${SITE_URL}/contact): how to reach the company.

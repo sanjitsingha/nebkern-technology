@@ -5,7 +5,7 @@ import Link from "next/link";
 
 import { AppsModal } from "./apps-modal";
 import { Logo } from "./logo";
-import { LINKS } from "@/lib/site";
+import { LINKS, PLAYGROUND_PATH } from "@/lib/site";
 import { PRODUCTS, STATUS_LABEL } from "@/lib/products";
 
 type MenuItem = {
@@ -27,6 +27,9 @@ const PRODUCT_ITEMS: MenuItem[] = [
     href: p.href,
     note: p.href ? undefined : (p.statusLabel ?? STATUS_LABEL[p.status]),
   })),
+  // Not an app, so not from the catalogue: Maya herself ships inside
+  // Instant. This is the page on THIS site where she can be tried.
+  { label: "Maya playground", href: PLAYGROUND_PATH },
 ];
 
 /** The company's own pages. This replaced a bare "Company" link to the

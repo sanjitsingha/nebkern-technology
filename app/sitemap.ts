@@ -19,7 +19,7 @@ import { absoluteUrl } from "@/lib/seo";
  * learns to ignore a sitemap's dates once they prove unreliable. Move
  * the date when the copy moves.
  */
-const COMPANY_PAGES_UPDATED = new Date("2026-09-17");
+const COMPANY_PAGES_UPDATED = new Date("2026-09-18");
 
 /** Regenerated at most every five minutes, so a post published or removed
  *  outside the admin still reaches the sitemap on its own. A literal, in
@@ -33,6 +33,7 @@ const COMPANY_PAGES: {
 }[] = [
   { path: "/", priority: 1, changeFrequency: "monthly" },
   { path: "/products", priority: 0.9, changeFrequency: "monthly" },
+  { path: "/maya-playground", priority: 0.7, changeFrequency: "monthly" },
   { path: "/about", priority: 0.8, changeFrequency: "monthly" },
   { path: "/trust", priority: 0.7, changeFrequency: "monthly" },
   { path: "/contact", priority: 0.7, changeFrequency: "yearly" },

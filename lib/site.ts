@@ -46,6 +46,14 @@ export const SITE = {
   url: "https://nebkern.com",
 } as const;
 
+/**
+ * The Maya playground's path. Here rather than in lib/maya.ts because
+ * the nav links to it, and the nav is a Client Component: importing the
+ * path from lib/maya would carry both of the playground's knowledge
+ * bases into the JavaScript every page downloads.
+ */
+export const PLAYGROUND_PATH = "/maya-playground";
+
 /** Outbound destinations. Instant owns its own marketing site, so this
  *  site links into it rather than restating it. */
 export const LINKS = {

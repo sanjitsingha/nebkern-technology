@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { LINKS, SITE } from "@/lib/site";
+import { LINKS, PLAYGROUND_PATH, SITE } from "@/lib/site";
 import { PRODUCTS } from "@/lib/products";
 import { Mark } from "./logo";
 
@@ -28,6 +28,7 @@ const COLUMNS: { title: string; links: FooterLink[] }[] = [
         label: p.name,
         href: p.href as string,
       })),
+      { label: "Maya playground", href: PLAYGROUND_PATH },
     ],
   },
   {

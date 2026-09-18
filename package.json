@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.127.0",
     "@react-three/fiber": "^9.7.0",
     "@supabase/postgrest-js": "2.109.0",
     "@supabase/storage-js": "2.109.0",

@@ -1,6 +1,7 @@
 import { Nav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
 import { Apps } from "@/components/site/apps";
+import { MayaSpotlight } from "@/components/site/maya-spotlight";
 import { Slider } from "@/components/site/slider";
 import { Banner } from "@/components/site/banner";
 import { Values } from "@/components/site/values";
@@ -36,6 +37,12 @@ export default function Home() {
 
         <Reveal>
           <Apps />
+        </Reveal>
+        {/* Straight after the apps slab, which leaves Maya out because
+            she is not an app of her own — this is where the homepage
+            makes up for it, and points at the playground. */}
+        <Reveal>
+          <MayaSpotlight />
         </Reveal>
         <Reveal>
           <Banner />
