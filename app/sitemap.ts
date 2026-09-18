@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { modifiedAt } from "@/lib/blog";
+import { postUrl } from "@/lib/blog-seo";
 import { listPublishedPosts } from "@/lib/blog-store";
 import { absoluteUrl } from "@/lib/seo";
 
@@ -50,10 +52,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   );
 
   // The blog index changes whenever any post does, so it inherits the
-  // newest post's timestamp.
-  const newest = posts.reduce<string | undefined>((latest, post) => {
-    const stamp = post.updatedAt ?? post.date;
-    return !latest || stamp > latest ? stamp : latest;
+  // newest post's timestamp. Compared as instants: `modifiedAt` can be
+  // UTC or +05:30, and the two do not sort correctly as text.
+  const newest = posts.reduce<number | undefined>((latest, post) => {
+    const at = Date.parse(modifiedAt(post));
+    return latest === undefined || at > latest ? at : latest;
   }, undefined);
 
   return [
@@ -65,17 +68,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     {
       url: absoluteUrl("/blog"),
-      lastModified: newest ? new Date(newest) : COMPANY_PAGES_UPDATED,
+      lastModified:
+        newest === undefined ? COMPANY_PAGES_UPDATED : new Date(newest),
       changeFrequency: "weekly",
       priority: 0.8,
     },
     ...posts.map((post) => ({
-      url: absoluteUrl(`/blog/${post.slug}`),
-      lastModified: new Date(post.updatedAt ?? post.date),
+      url: postUrl(post.slug),
+      // `modifiedAt`, which reads a bare published date as the start of
+      // that day in IST. `new Date("2026-09-18")` reads it as UTC
+      // midnight — five and a half hours late.
+      lastModified: new Date(modifiedAt(post)),
       changeFrequency: "yearly" as const,
       // Below the index, which is the page that should rank for the
       // blog itself.
       priority: 0.6,
+      // An image sitemap entry: how Google Images learns a picture
+      // belongs to this article when it cannot tell from the page alone.
+      // The original upload, not the 1200×630 share cut — image search
+      // wants the full-resolution file.
+      ...(post.cover ? { images: [post.cover.src] } : {}),
     })),
   ];
 }

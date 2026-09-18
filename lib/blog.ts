@@ -334,3 +334,52 @@ export function formatDate(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
   return `${d} ${MONTHS[m - 1]} ${y}`;
 }
+
+/**
+ * The moment a post was published, as a full ISO 8601 timestamp.
+ *
+ * `date` is a bare `YYYY-MM-DD`, stamped in Indian time by the admin. A
+ * bare date has no timezone, so every consumer guesses one — and they
+ * guess UTC. That made a post created at 00:50 IST on the 18th claim
+ * `datePublished: 2026-09-18` next to `dateModified:
+ * 2026-09-17T19:20Z`: modified five hours before it was published, which
+ * is exactly the kind of inconsistency a structured-data check flags.
+ *
+ * Start of that day in IST is the honest reading of a date that was
+ * recorded in IST, and it can never fall after the real creation time.
+ */
+export function publishedAt(post: Pick<Post, "date">): string {
+  return `${post.date}T00:00:00+05:30`;
+}
+
+/** Last change, falling back to publication for posts saved before
+ *  `updatedAt` existed. Never earlier than `publishedAt` — see above. */
+export function modifiedAt(post: Pick<Post, "date" | "updatedAt">): string {
+  return post.updatedAt ?? publishedAt(post);
+}
+
+/**
+ * An `id` for every heading in a body, keyed by block index.
+ *
+ * What makes `/blog/<slug>#some-section` a working link — so a heading
+ * can be linked to directly, and so a search engine can offer "jump to"
+ * links into a long article. Derived from the heading's own text with the
+ * same `slugify` the post URLs use; a repeated heading gets `-2`, `-3`
+ * rather than a second element with the same id, which would make the
+ * later one unreachable.
+ */
+export function headingIds(body: Block[]): Map<number, string> {
+  const ids = new Map<number, string>();
+  const seen = new Map<string, number>();
+
+  body.forEach((block, index) => {
+    if (block.type !== "h2" && block.type !== "h3") return;
+
+    const base = slugify(blockText(block)) || "section";
+    const count = (seen.get(base) ?? 0) + 1;
+    seen.set(base, count);
+    ids.set(index, count === 1 ? base : `${base}-${count}`);
+  });
+
+  return ids;
+}

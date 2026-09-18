@@ -81,6 +81,35 @@ export type Database = {
         }
         Relationships: []
       }
+      // Hand-written from supabase/migrations/20260918120000_post_redirects.sql,
+      // because that migration could not be applied from the machine it
+      // was written on. Regenerate this file once it has been applied.
+      post_redirects: {
+        Row: {
+          created_at: string
+          from_slug: string
+          to_slug: string
+        }
+        Insert: {
+          created_at?: string
+          from_slug: string
+          to_slug: string
+        }
+        Update: {
+          created_at?: string
+          from_slug?: string
+          to_slug?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_redirects_to_slug_fkey"
+            columns: ["to_slug"]
+            isOneToOne: false
+            referencedRelation: "posts"
+            referencedColumns: ["slug"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

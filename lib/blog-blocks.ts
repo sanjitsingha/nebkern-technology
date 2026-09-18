@@ -211,8 +211,17 @@ export function deltaToBlocks(delta: Delta): Block[] {
 
     if (!hasText(spans)) continue; // blank line: the writer's spacing
 
-    if (attrs.header === 2 || attrs.header === 3) {
-      blocks.push({ type: attrs.header === 2 ? "h2" : "h3", spans });
+    // Every heading level survives, mapped onto the two the article
+    // renders. The toolbar only offers 2 and 3, but paste does not go
+    // through the toolbar: a Google Doc's "Heading 1", or an <h1> or <h4>
+    // copied from a web page, arrives as header 1 or 4-6. Those used to
+    // fall through to a paragraph here — shown as a heading while
+    // editing, gone after the save — and a post without headings has no
+    // outline for a search engine to read. 1 becomes an h2 because the
+    // page's one h1 is the post title; anything deeper than 3 becomes an
+    // h3, the deepest level the article styles.
+    if (typeof attrs.header === "number" && attrs.header >= 1) {
+      blocks.push({ type: attrs.header <= 2 ? "h2" : "h3", spans });
       continue;
     }
 

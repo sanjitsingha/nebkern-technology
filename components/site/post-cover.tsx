@@ -25,6 +25,8 @@ export function PostCover({
   cover,
   sizes,
   ratio = "16 / 9",
+  preload = false,
+  altFallback = "",
   className = "",
 }: {
   cover: Post["cover"];
@@ -39,6 +41,20 @@ export function PostCover({
    * which is why the lead card asks for something flatter.
    */
   ratio?: string;
+  /**
+   * For the one cover that is a page's Largest Contentful Paint — the
+   * article's, and the index's lead card. Puts a `<link rel="preload">`
+   * in the head so the download starts before the parser reaches the
+   * image. Never on a list thumbnail: preloading several images makes
+   * them compete, and the one that matters loads later, not sooner.
+   */
+  preload?: boolean;
+  /**
+   * Alt text for a cover saved without any. The admin requires it on
+   * publish now, but posts published before that have none, and the
+   * post's title describes its cover better than silence does.
+   */
+  altFallback?: string;
   className?: string;
 }) {
   if (!cover) return null;
@@ -50,9 +66,10 @@ export function PostCover({
     >
       <Image
         src={cover.src}
-        alt={cover.alt}
+        alt={cover.alt || altFallback}
         fill
         sizes={sizes}
+        preload={preload}
         className="object-cover"
       />
     </div>

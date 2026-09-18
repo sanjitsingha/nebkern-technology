@@ -41,6 +41,24 @@ export function absoluteUrl(path = "/"): string {
 export const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 export const WEBSITE_ID = `${SITE_URL}/#website`;
 
+/** The blog's RSS feed — app/blog/rss.xml/route.ts. */
+export const FEED_PATH = "/blog/rss.xml";
+
+/**
+ * `<link rel="alternate" type="application/rss+xml">`, on every page.
+ *
+ * Every page rather than just the blog, because feed readers and
+ * browser extensions discover a feed from whatever page they are handed
+ * — usually the homepage. It has to be repeated in each page's
+ * `alternates` rather than set once in the layout: `alternates` merges
+ * as a whole object like the rest of metadata, so a page that sets its
+ * own canonical would otherwise drop the feed link along with the
+ * layout's canonical.
+ */
+export const FEED_ALTERNATE = {
+  "application/rss+xml": [{ url: FEED_PATH, title: `${SITE.shortName} blog` }],
+};
+
 /** One page's metadata, complete. `title` feeds the root template
  *  ("About the company — Nebkern Technology"); `shareTitle` is what a
  *  link preview shows, and defaults to the same full string. */
@@ -60,7 +78,7 @@ export function pageMetadata({
   return {
     title,
     description,
-    alternates: { canonical: path },
+    alternates: { canonical: path, types: FEED_ALTERNATE },
     openGraph: {
       type: "website",
       siteName: SITE.shortName,

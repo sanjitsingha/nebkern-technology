@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { revalidatePath, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 
 import {
   checkCredentials,
@@ -32,8 +33,12 @@ import {
   deletePost,
   getPost,
   readMinutes,
+  recordRename,
   updatePost,
 } from "@/lib/blog-store";
+import { postUrl } from "@/lib/blog-seo";
+import { notifyIndexNow } from "@/lib/indexnow";
+import { absoluteUrl } from "@/lib/seo";
 
 /**
  * Today, as `YYYY-MM-DD`, in Indian time.
@@ -168,14 +173,18 @@ export async function savePostAction(
   const draft = formData.get("intent") === "draft";
   if (draft) post.draft = true;
 
+  // The post as it stands before this save, when this is an edit. Read
+  // once and used three ways below: to keep the original date, to know
+  // whether an old URL was public and needs a redirect, and to know
+  // whether anything a search engine can see has changed.
+  const existing = originalSlug ? await getPost(originalSlug) : undefined;
+  const wasPublic = existing ? !existing.draft : false;
+
   // An edit keeps the date the post was first published. `postFromForm`
   // stamps today unconditionally, which is right for a new post and
   // would silently re-date an old one — an article from March becoming
   // today's news because somebody fixed a typo in it.
-  if (originalSlug) {
-    const existing = await getPost(originalSlug);
-    if (existing) post.date = existing.date;
-  }
+  if (existing) post.date = existing.date;
 
   // A draft is held to a lower bar on purpose. The whole point of one is
   // to save unfinished work and come back, so demanding a body would
@@ -204,6 +213,16 @@ export async function savePostAction(
   if (!draft && !post.body.length) {
     return { error: "A post needs a body before it can be published." };
   }
+  // Held to the same bar as images in the body, which the editor will
+  // not insert without a description. The cover is the largest image on
+  // the page and the one image search indexes the post by; both covers
+  // published before this check went out with none. Drafts are exempt,
+  // like every other publish-time rule here.
+  if (!draft && post.cover && !post.cover.alt) {
+    return {
+      error: "The cover image needs alt text before it can be published.",
+    };
+  }
 
   try {
     if (originalSlug) {
@@ -220,7 +239,22 @@ export async function savePostAction(
     };
   }
 
+  // A published post that moved keeps its old address working. Only a
+  // PUBLIC old slug earns a redirect: a draft's was never a URL anyone
+  // could have linked to.
+  const renamed = Boolean(originalSlug) && originalSlug !== post.slug;
+  if (renamed && wasPublic) await recordRename(originalSlug, post.slug);
+
   revalidateBlog(originalSlug || post.slug, post.slug);
+
+  // Tell search engines, but only when something they can see changed:
+  // a post published, edited while live, renamed, or taken down to a
+  // draft. Saving one draft over another changes nothing public.
+  if (wasPublic || !post.draft) {
+    const urls = [postUrl(post.slug), absoluteUrl("/blog")];
+    if (renamed) urls.push(postUrl(originalSlug));
+    after(() => notifyIndexNow(urls));
+  }
   // A draft save means "not finished", so it returns to the editor it
   // was saved from and the next save carries on from there. It goes to
   // the post's own slug rather than back to /new, which would reopen an
@@ -234,8 +268,15 @@ export async function deletePostAction(formData: FormData) {
 
   const slug = String(formData.get("slug") ?? "");
   if (slug) {
+    // Read before it is gone: only a post that was live needs search
+    // engines told that its URL now 404s.
+    const existing = await getPost(slug);
     await deletePost(slug);
     revalidateBlog(slug, slug);
+
+    if (existing && !existing.draft) {
+      after(() => notifyIndexNow([postUrl(slug), absoluteUrl("/blog")]));
+    }
   }
 
   redirect("/admin/posts");
@@ -309,14 +350,23 @@ function revalidateBlog(oldSlug: string, newSlug: string) {
   updateTag(POSTS_CACHE_TAG);
 
   revalidatePath("/blog");
-  revalidatePath(`/blog/${oldSlug}`);
-  if (newSlug !== oldSlug) revalidatePath(`/blog/${newSlug}`);
   revalidatePath("/admin/posts");
 
-  // Both are generated from the same posts, so a write leaves them as
-  // stale as the pages themselves. Without this the sitemap would go on
+  // The article and both of its share images, at the old address and
+  // the new one. The old address matters most on a rename: its cached
+  // page is the one that has to become a redirect.
+  for (const slug of new Set([oldSlug, newSlug])) {
+    revalidatePath(`/blog/${slug}`);
+    revalidatePath(`/blog/${slug}/cover.jpg`);
+    revalidatePath(`/blog/${slug}/card.png`);
+  }
+
+  // All generated from the same posts, so a write leaves them as stale
+  // as the pages themselves. Without this the sitemap would go on
   // advertising a deleted post, or omit a new one, until the next
-  // deploy.
+  // deploy — and the feed would do the same to every reader following
+  // it.
   revalidatePath("/sitemap.xml");
   revalidatePath("/llms.txt");
+  revalidatePath("/blog/rss.xml");
 }

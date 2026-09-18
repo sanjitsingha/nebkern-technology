@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import { Nav } from "@/components/site/nav";
 import { PostCover } from "@/components/site/post-cover";
@@ -8,20 +8,33 @@ import { ShareLinks } from "@/components/site/share-links";
 import { ListLabel, PostRow } from "@/components/site/post-row";
 import { Footer } from "@/components/site/footer";
 import { JsonLd } from "@/components/site/page";
-import { ORGANIZATION_ID, breadcrumbJsonLd } from "@/lib/seo";
+import { FEED_ALTERNATE, breadcrumbJsonLd } from "@/lib/seo";
 import {
-  blockText,
   formatDate,
+  headingIds,
+  modifiedAt,
+  publishedAt,
   safeHref,
   type Block,
   type Span,
 } from "@/lib/blog";
+import {
+  blogPostingJsonLd,
+  postDescription,
+  postPath,
+  postTitle,
+  shareImage,
+} from "@/lib/blog-seo";
 import { SITE } from "@/lib/site";
+import {
+  findRedirect,
+  getPublishedPost,
+  listPublishedPosts,
+} from "@/lib/blog-store";
 
 /** Keys map to utilities rather than inline styles, so a body can never
  *  put an arbitrary font-family on the page. */
 const FONT_CLASS = { serif: "font-serif", mono: "font-mono" } as const;
-import { getPublishedPost, listPublishedPosts } from "@/lib/blog-store";
 
 /** Every published post is known at build time, so every published post
  *  is prerendered. Drafts are absent, and the page below 404s them, so a
@@ -54,13 +67,20 @@ export async function generateMetadata({
   // who fills neither still gets correct metadata. They exist because
   // the two audiences want different sentences: a headline that reads
   // well above an article is often the wrong length for a result page.
-  const title = post.seo?.title?.trim() || post.title;
-  const description = post.seo?.description?.trim() || post.excerpt;
+  const title = postTitle(post);
+  const description = postDescription(post);
+  const path = postPath(post.slug);
+
+  // A post with a cover shares a 1200×630 cut of it; one without, a card
+  // drawn from its title. Either way the size is known and declared, so
+  // a scraper can lay out the preview before it has fetched the image.
+  // See `shareImage` for why the cover file itself is not used.
+  const image = shareImage(post);
 
   return {
     title,
     description,
-    alternates: { canonical: `/blog/${post.slug}` },
+    alternates: { canonical: path, types: FEED_ALTERNATE },
     // A post marked noindex is also dropped from the sitemap, in
     // app/sitemap.ts. The two have to agree: listing a page in the
     // sitemap while telling crawlers not to index it is a contradiction
@@ -72,32 +92,23 @@ export async function generateMetadata({
       type: "article",
       title,
       description,
-      url: `/blog/${post.slug}`,
-      publishedTime: post.date,
+      url: path,
+      // Full timestamps with an offset, not bare dates. See
+      // `publishedAt` in lib/blog.ts for what a bare date got wrong.
+      publishedTime: publishedAt(post),
       // Distinct from `publishedTime`: an edit should tell a crawler
       // the page changed without restating it as newly published.
-      modifiedTime: post.updatedAt ?? post.date,
-      // A post with a cover shares its cover. One without gets a card
-      // drawn with its own title (app/blog/[slug]/card.png). This used to
-      // assume the site-wide card would fill the gap — it does not: once
-      // a page sets `openGraph` at all, it no longer inherits the root's
-      // image, and these posts were shared as bare links.
-      images: post.cover
-        ? [{ url: post.cover.src, alt: post.cover.alt }]
-        : [
-            {
-              url: `/blog/${post.slug}/card.png`,
-              width: 1200,
-              height: 630,
-              alt: post.title,
-            },
-          ],
+      modifiedTime: modifiedAt(post),
+      // Set explicitly on purpose: once a page sets `openGraph` at all,
+      // it no longer inherits the root's image, and these posts used to
+      // be shared as bare links.
+      images: [image],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: [post.cover ? post.cover.src : `/blog/${post.slug}/card.png`],
+      images: [{ url: image.url, alt: image.alt }],
     },
   };
 }
@@ -194,18 +205,30 @@ function ListItem({
   );
 }
 
-function BlockView({ block }: { block: Block }) {
+/**
+ * `id` is set on headings only — see `headingIds` in lib/blog.ts. It is
+ * what makes `#section` links into an article work. `scroll-mt-28` keeps
+ * the heading clear of the 80px sticky nav when the browser jumps to it;
+ * without it the heading would land underneath the bar.
+ */
+function BlockView({ block, id }: { block: Block; id?: string }) {
   switch (block.type) {
     case "h2":
       return (
-        <h2 className="mt-12 mb-4 text-[1.5rem] font-semibold tracking-[-0.02em] text-ink sm:text-[1.75rem]">
+        <h2
+          id={id}
+          className="mt-12 mb-4 scroll-mt-28 text-[1.5rem] font-semibold tracking-[-0.02em] text-ink sm:text-[1.75rem]"
+        >
           <Spans spans={block.spans} />
         </h2>
       );
 
     case "h3":
       return (
-        <h3 className="mt-9 mb-3 text-[1.1875rem] font-semibold tracking-[-0.018em] text-ink sm:text-[1.3125rem]">
+        <h3
+          id={id}
+          className="mt-9 mb-3 scroll-mt-28 text-[1.1875rem] font-semibold tracking-[-0.018em] text-ink sm:text-[1.3125rem]"
+        >
           <Spans spans={block.spans} />
         </h3>
       );
@@ -283,11 +306,15 @@ function BlockView({ block }: { block: Block }) {
       return (
         <figure className="my-9">
           <div className="relative aspect-[16/9] overflow-hidden rounded-md bg-surface-2">
+            {/* The widths the body column actually renders at: 832px
+                once the 4xl column is full, the viewport less the side
+                padding below that. It said 896px and 100vw, which sent
+                every phone an image sized for the full screen width. */}
             <Image
               src={block.src}
               alt={block.alt}
               fill
-              sizes="(min-width: 896px) 896px, 100vw"
+              sizes="(min-width: 896px) 832px, (min-width: 640px) calc(100vw - 4rem), calc(100vw - 2.5rem)"
               className="object-cover"
             />
           </div>
@@ -319,68 +346,35 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
   // a draft, which `getPublishedPost` cannot see. That matters because
   // this route still renders slugs it did not prerender, on demand: the
   // database is what stops a typed-in draft URL, not this file.
-  if (!post) notFound();
+  if (!post) {
+    // Unless it is a URL a published post USED to live at. Renaming a
+    // post in the admin records the old slug, and the old URL answers
+    // with a permanent redirect — so links already out in the world,
+    // and whatever ranking the page had earned, follow it to the new
+    // address instead of ending at a 404. The target is checked too: a
+    // post unpublished since its rename should 404, not redirect to one.
+    const target = await findRedirect(slug);
+    if (target && target !== slug && (await getPublishedPost(target))) {
+      permanentRedirect(postPath(target));
+    }
+    notFound();
+  }
 
   const others = (await listPublishedPosts())
     .filter((p) => p.slug !== post.slug)
     .slice(0, 2);
 
-  /**
-   * Article structured data.
-   *
-   * The layout already publishes an Organization; this is the per-page
-   * half, and it is what lets a search engine show a headline, a date
-   * and a byline rather than guessing them out of the markup.
-   *
-   * `isPartOf` and `publisher` tie the article back to that
-   * Organization by URL, so the two graphs are one graph rather than
-   * two unrelated claims on the same domain.
-   */
-  const articleJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "BlogPosting",
-    // The same fallback chain `generateMetadata` uses. A post whose SEO
-    // panel overrides the title should not then contradict itself in its
-    // own structured data.
-    headline: post.seo?.title?.trim() || post.title,
-    description: post.seo?.description?.trim() || post.excerpt,
-    datePublished: post.date,
-    dateModified: post.updatedAt ?? post.date,
-    // The company, not a person. Posts carry no byline, and naming an
-    // author in structured data that the page itself does not show is
-    // exactly the kind of mismatch a rich-results check flags.
-    author: { "@id": ORGANIZATION_ID },
-    publisher: {
-      "@type": "Organization",
-      name: SITE.name,
-      url: `${SITE.url}/`,
-    },
-    isPartOf: {
-      "@type": "Blog",
-      name: `${SITE.shortName} blog`,
-      url: `${SITE.url}/blog`,
-    },
-    // Tells a crawler which URL is the article's own, independently of
-    // the one it happened to arrive on.
-    mainEntityOfPage: {
-      "@type": "WebPage",
-      "@id": `${SITE.url}/blog/${post.slug}`,
-    },
-    // `\s+`, not `s+`. The missing backslash split on the LETTER s, so
-    // the count was words-plus-every-s rather than words.
-    wordCount: post.body.map(blockText).join(" ").split(/\s+/).filter(Boolean)
-      .length,
-    ...(post.cover ? { image: [post.cover.src] } : {}),
-  };
+  // Computed once for the whole body, since a repeated heading's id
+  // depends on how many came before it.
+  const ids = headingIds(post.body);
 
   return (
     <>
-      <script
-        type="application/ld+json"
-        // Serialised, not interpolated — the values are ours, but a
-        // stringify keeps a stray quote from ever breaking the tag.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
-      />
+      {/* Through `JsonLd`, which escapes `<`. This used to be a bare
+          `JSON.stringify` into the script tag, and the values here are
+          typed in the admin — a title containing `</script>` would have
+          ended the tag and dumped the rest of the JSON onto the page. */}
+      <JsonLd data={blogPostingJsonLd(post)} />
 
       <a
         href="#main"
@@ -466,22 +460,34 @@ export default async function BlogPost({ params }: PageProps<"/blog/[slug]">) {
               line, which read as the header having lost its footing. */}
           {post.cover && (
             <div className="mx-auto max-w-4xl px-5 pt-8 sm:px-8 sm:pt-9">
-              {/* 16:9, so the picture is 432px tall in this 768px
-                  column rather than the 329px that 21:9 gave it. The
+              {/* 16:9, so the picture is 468px tall in this 832px
+                  column rather than the 357px that 21:9 gave it. The
                   index's lead card keeps 21:9: it runs 1088px wide, so
                   the same ratio there is already 466px, and matching the
-                  numbers matters more here than matching the shape. */}
+                  numbers matters more here than matching the shape.
+
+                  `preload`, because this is the page's largest element
+                  above the fold — the thing Largest Contentful Paint
+                  times. Preloading starts the download from the <head>
+                  instead of waiting for the parser to reach this tag,
+                  and LCP is one of the Core Web Vitals Google ranks on.
+
+                  `altFallback`: both existing covers were saved with no
+                  alt text, which left the largest image on the page
+                  undescribed to image search and to screen readers. */}
               <PostCover
                 cover={post.cover}
                 ratio="16 / 9"
                 sizes="(min-width: 896px) 832px, (min-width: 640px) calc(100vw - 4rem), calc(100vw - 2.5rem)"
+                preload
+                altFallback={post.title}
               />
             </div>
           )}
 
           <div className="mx-auto max-w-4xl px-5 py-12 sm:px-8 sm:py-16">
             {post.body.map((block, i) => (
-              <BlockView key={i} block={block} />
+              <BlockView key={i} block={block} id={ids.get(i)} />
             ))}
           </div>
         </article>

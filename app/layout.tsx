@@ -3,7 +3,12 @@ import { Manrope, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
 import { PRODUCTS } from "@/lib/products";
-import { ORGANIZATION_ID, SITE_URL, WEBSITE_ID } from "@/lib/seo";
+import {
+  FEED_ALTERNATE,
+  ORGANIZATION_ID,
+  SITE_URL,
+  WEBSITE_ID,
+} from "@/lib/seo";
 import { SITE } from "@/lib/site";
 
 // Manrope, and deliberately NOT Instant's Inter — the parent brand now
@@ -61,7 +66,7 @@ export const metadata: Metadata = {
   // The homepage's canonical. Every other page sets its own through
   // `pageMetadata` in lib/seo.ts — a page that did not would inherit this
   // one and tell crawlers it was a duplicate of the homepage.
-  alternates: { canonical: `${SITE_URL}/` },
+  alternates: { canonical: `${SITE_URL}/`, types: FEED_ALTERNATE },
   robots: {
     index: true,
     follow: true,

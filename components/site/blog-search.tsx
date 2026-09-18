@@ -49,11 +49,17 @@ function LeadCard({ post }: { post: PostSummary }) {
 
           Renders nothing at all until the post has a cover, and its
           `mb-7` goes with it — so the card opens on its meta line
-          rather than on a space where a picture is not. */}
+          rather than on a space where a picture is not.
+
+          `preload`: this is the index's Largest Contentful Paint. No
+          alt fallback, unlike the article's cover — this one sits inside
+          a link whose text is already the title, and repeating the
+          title as alt text would make the link read it twice. */}
       <PostCover
         cover={post.cover}
         ratio="21 / 9"
         sizes="(min-width: 1152px) 1088px, (min-width: 640px) calc(100vw - 4rem), calc(100vw - 2.5rem)"
+        preload
         className="mb-7"
       />
 

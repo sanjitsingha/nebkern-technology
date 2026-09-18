@@ -237,3 +237,76 @@ export async function deletePost(slug: string): Promise<void> {
   const { error } = await adminDb().from("posts").delete().eq("slug", slug);
   if (error) raise(`delete /blog/${slug}`, error);
 }
+
+/**
+ * PostgREST's code for "no such table". The redirects table comes from
+ * supabase/migrations/20260918120000_post_redirects.sql; until that has
+ * been applied, both functions below behave as if there were simply no
+ * redirects — which is exactly how the site behaved before they existed.
+ */
+const TABLE_MISSING = "PGRST205";
+
+/**
+ * Where a post that used to live at `slug` lives now, if anywhere.
+ *
+ * Only asked after a slug has already failed to resolve, so it costs
+ * nothing on a working URL. It deliberately does NOT throw like the rest
+ * of this file: a failed lookup here should end in the 404 the reader
+ * was getting anyway, not turn every unknown URL into an error page.
+ *
+ * Read with the publishable key, and the table's policy only shows rows
+ * whose target is published — so a redirect can never reveal a draft.
+ */
+export const findRedirect = cache(
+  async (slug: string): Promise<string | undefined> => {
+    const { data, error } = await publicDb()
+      .from("post_redirects")
+      .select("to_slug")
+      .eq("from_slug", slug)
+      .maybeSingle();
+
+    if (error) {
+      if (error.code !== TABLE_MISSING) {
+        console.error(
+          `Redirect lookup for /blog/${slug} failed: ${error.message}`,
+        );
+      }
+      return undefined;
+    }
+    return data?.to_slug;
+  },
+);
+
+/**
+ * Records that a published post moved from `from` to `to`. Called after
+ * the post itself has moved — the table's foreign key needs `to` to
+ * exist — and only for posts that were public, since a draft's old slug
+ * was never an address anyone had.
+ *
+ * Redirects that already pointed at `from` need no work: the foreign
+ * key's ON UPDATE CASCADE re-pointed them at `to` when the post's slug
+ * changed, so a post renamed twice still redirects in one hop.
+ *
+ * Never throws. The rename has already succeeded by the time this runs,
+ * and failing the save over its redirect would tell the writer their
+ * post did not save when it did.
+ */
+export async function recordRename(from: string, to: string): Promise<void> {
+  const db = adminDb();
+
+  // A post moving BACK to an address it once had would otherwise leave
+  // a redirect from that address to itself.
+  const cleared = await db.from("post_redirects").delete().eq("from_slug", to);
+  const saved = cleared.error
+    ? cleared
+    : await db.from("post_redirects").upsert({ from_slug: from, to_slug: to });
+
+  const error = cleared.error ?? saved.error;
+  if (!error) return;
+
+  console.error(
+    error.code === TABLE_MISSING
+      ? `/blog/${from} was renamed to /blog/${to}, but no redirect was recorded: the post_redirects table does not exist yet. Apply supabase/migrations/20260918120000_post_redirects.sql.`
+      : `Could not record the redirect /blog/${from} -> /blog/${to}: ${error.message}`,
+  );
+}
