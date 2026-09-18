@@ -377,10 +377,11 @@ body {
    wrapper's border; with the border gone it would only push the body
    out of line with the title above it, which is the alignment the
    writing column is built on. The top padding is the gap under the
-   toolbar. */
+   toolbar, less the pinned band's own 12px `pb-3` below it — together
+   still 20px. */
 .quill-host .ql-editor {
   min-height: 26rem;
-  padding: 1.25rem 0 0;
+  padding: 0.5rem 0 0;
   font-family: var(--font-sans);
   font-size: 1rem;
   line-height: 1.7;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { ImageUploadButton } from "@/components/admin/image-upload-button";
 import type { Block } from "@/lib/blog";
@@ -54,11 +54,24 @@ type ImageDraft = { src: string; alt: string; caption: string };
 
 const EMPTY_DRAFT: ImageDraft = { src: "", alt: "", caption: "" };
 
+/**
+ * Clearance kept between the sticky band's bottom edge and the caret,
+ * so the line being written never sits flush against the toolbar.
+ */
+const CARET_CLEARANCE = 16;
+
 export function BodyEditor({
+  header,
   value,
   onChange,
   onSettings,
 }: {
+  /** Rendered above the toolbar, inside the band that stays pinned while
+   *  the post scrolls — the title field. It lives in the form, but it
+   *  has to share the toolbar's sticky container: two separately sticky
+   *  elements need their offsets kept in step by hand, and they leave a
+   *  seam between them that text shows through as it scrolls past. */
+  header: ReactNode;
   value: Block[];
   onChange: (blocks: Block[]) => void;
   /** Opens the post's settings. The button lives in Quill's toolbar,
@@ -69,9 +82,16 @@ export function BodyEditor({
   onSettings: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const band = useRef<HTMLDivElement>(null);
+  const toolbarSlot = useRef<HTMLDivElement>(null);
   const quill = useRef<InstanceType<typeof import("quill").default> | null>(
     null,
   );
+
+  // Scrolls the page just enough to bring the caret out from under the
+  // band. Set by the effect once Quill exists; also called after an
+  // image is inserted, which moves the caret without a user event.
+  const revealCaret = useRef<() => void>(() => {});
 
   // Where the caret was when the image button was pressed. Focus moves
   // to the panel's inputs the moment it opens, and Quill forgets the
@@ -93,7 +113,8 @@ export function BodyEditor({
 
   useEffect(() => {
     const container = host.current;
-    if (!container) return;
+    const slot = toolbarSlot.current;
+    if (!container || !slot) return;
 
     let detach: (() => void) | null = null;
     let cancelled = false;
@@ -101,10 +122,21 @@ export function BodyEditor({
     // Imported here rather than at module scope: Quill touches
     // `document` as it loads, which throws during the server render.
     void (async () => {
-      const { default: Quill } = await import("quill");
+      const [{ default: Quill }, { addControls }] = await Promise.all([
+        import("quill"),
+        import("quill/modules/toolbar"),
+      ]);
       if (cancelled) return;
 
       registerFormats(Quill);
+
+      // The toolbar is built into the band's own slot rather than where
+      // Quill puts it by default — inserted just before the editor, as a
+      // sibling of it — because the band is what stays pinned. This is
+      // Quill's own control builder, and handing it an element as the
+      // container is a supported option; nothing of Quill's is moved
+      // after the fact.
+      addControls(slot, TOOLBAR);
 
       const editor = new Quill(container, {
         theme: "snow",
@@ -116,7 +148,7 @@ export function BodyEditor({
           // expects from ctrl+Z.
           history: { delay: 500, maxStack: 200, userOnly: true },
           toolbar: {
-            container: TOOLBAR,
+            container: slot,
             handlers: {
               divider(this: { quill: InstanceType<typeof Quill> }) {
                 const range = this.quill.getSelection(true);
@@ -175,18 +207,75 @@ export function BodyEditor({
           deltaToBlocks(editor.getContents() as unknown as Delta),
         );
 
+      // Quill keeps the caret on screen itself, but it only counts the
+      // caret as hidden once it has left the WINDOW. Under a pinned band
+      // that is too late: arrowing up a long post, the line being
+      // edited would slide beneath the title and toolbar and stay there
+      // for several lines before Quill reacted. This measures against
+      // the band's bottom edge instead.
+      revealCaret.current = () => {
+        const range = editor.getSelection();
+        const edge = band.current?.getBoundingClientRect().bottom;
+        if (!range || edge === undefined) return;
+
+        // Where the browser actually DRAWS the caret, first. Quill's
+        // `getBounds` works from the caret's index, and at the point
+        // where a long line wraps, one index is both the end of the upper
+        // line and the start of the lower one: the browser draws the
+        // caret on the upper line, `getBounds` reports the lower. Trusting
+        // it left the caret one line short, still under the band.
+        let top: number | undefined;
+        const native = window.getSelection();
+        if (native?.rangeCount && editor.root.contains(native.anchorNode)) {
+          top = [...native.getRangeAt(0).getClientRects()].find(
+            (rect) => rect.height > 0,
+          )?.top;
+        }
+
+        // An empty line or an embed gives the browser nothing to measure,
+        // and there the index is unambiguous, so Quill's answer is right.
+        // Relative to Quill's container, not the window.
+        if (top === undefined) {
+          const caret = editor.getBounds(range.index, range.length);
+          if (!caret) return;
+          top = editor.container.getBoundingClientRect().top + caret.top;
+        }
+
+        const hidden = edge + CARET_CLEARANCE - top;
+        if (hidden > 0) window.scrollBy(0, -hidden);
+      };
+
+      // Only for the writer's own edits and caret moves. Scrolling with
+      // the wheel changes neither, so reading back through a post never
+      // gets yanked back to the caret. The next frame, so this runs
+      // after Quill's own scroll rather than being undone by it.
+      let frame = 0;
+      const follow = (...args: unknown[]) => {
+        if (args[args.length - 1] !== "user") return;
+        cancelAnimationFrame(frame);
+        frame = requestAnimationFrame(() => revealCaret.current());
+      };
+
       editor.on("text-change", handler);
-      detach = () => editor.off("text-change", handler);
+      editor.on("editor-change", follow);
+      detach = () => {
+        editor.off("text-change", handler);
+        editor.off("editor-change", follow);
+        cancelAnimationFrame(frame);
+      };
     })();
 
     return () => {
       cancelled = true;
       detach?.();
       quill.current = null;
+      revealCaret.current = () => {};
       // Quill appends its own DOM to the host and offers no destroy();
       // clearing it is what stops a second toolbar and editor stacking
-      // under the first when this remounts.
+      // under the first when this remounts. The toolbar lives in the
+      // band's slot now, outside the host, so that is cleared too.
       container.innerHTML = "";
+      slot.innerHTML = "";
     };
   }, []);
 
@@ -218,6 +307,15 @@ export function BodyEditor({
 
     setDraft(null);
     setImageError(null);
+
+    // The panel opens at the foot of the post, so inserting from the
+    // pinned toolbar mid-post leaves the page scrolled to the bottom,
+    // far from the picture that just went in. Bring the view back to it
+    // once the panel has closed and the page has its final height.
+    requestAnimationFrame(() => {
+      editor.scrollSelectionIntoView();
+      revealCaret.current();
+    });
   };
 
   const field =
@@ -233,6 +331,25 @@ export function BodyEditor({
     // above it does. `overflow-hidden` and `rounded-md` went with the
     // border — there is no longer a corner to clip anything against.
     <div className="quill-host">
+      {/* The title and the toolbar, pinned under the form's top bar while
+          the post scrolls beneath them.
+
+          `top-16` is that bar's height (`h-16` in post-form.tsx); change
+          the two together. `bg-paper` is the page's own background, so
+          the band is invisible at rest and only reads as a band once
+          text is passing under it. `pb-3` is the paper strip below the
+          toolbar that text disappears into, rather than scrolling
+          straight up against the toolbar's edge. `z-20` keeps Quill's
+          dropdowns above the text and below the top bar's `z-30`.
+
+          `min-h` on the slot holds the toolbar's height open until Quill
+          has loaded and filled it, so the body does not jump down when
+          it arrives. */}
+      <div ref={band} className="sticky top-16 z-20 bg-paper pt-3 pb-3">
+        {header}
+        <div ref={toolbarSlot} className="mt-4 min-h-10.5" />
+      </div>
+
       <div ref={host} />
 
       {draft && (

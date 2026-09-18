@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useRef, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 
 import { savePostAction, type FormState } from "@/app/admin/actions";
 import { BodyEditor } from "@/components/admin/editor";
@@ -139,6 +139,16 @@ export function PostForm({ post }: { post?: Post }) {
 
   const closeSettings = () => settings.current?.close();
 
+  // A refused save reports at the top of the column, above the pinned
+  // title — but Publish sits in the top bar and is pressed from wherever
+  // the writer happens to be, usually far down a long post. Without this
+  // the error rendered off-screen and the button appeared to do nothing.
+  // Keyed on the state OBJECT, not the message, so pressing Publish
+  // twice into the same refusal still brings it back into view.
+  useEffect(() => {
+    if (state?.error) window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [state]);
+
   // What a search result would actually show. Falls back exactly the
   // way the page does, so an empty override previews the real thing
   // rather than an empty line.
@@ -242,58 +252,68 @@ export function PostForm({ post }: { post?: Post }) {
         </div>
       </div>
 
-      <div className={`${BAR} py-8 sm:py-10`}>
+      {/* Top padding is 12px short of the old `py-8 sm:py-10` because the
+          editor's pinned band adds its own `pt-3` above the title — the
+          title still starts 32/40px under the bar, as it did. */}
+      <div className={`${BAR} pt-5 pb-8 sm:pt-7 sm:pb-10`}>
         {/* The published article's own measure. With the rail gone this
             column would otherwise run the full 88rem of the bar above —
             around 150 characters a line, far past anything comfortable
             to write in — and 4xl is exactly the width the post renders
             at, so a line here wraps where it will on the page. */}
-        <div className="mx-auto flex max-w-4xl flex-col gap-6">
+        <div className="mx-auto flex max-w-4xl flex-col">
           {state?.error && (
             <p
               role="alert"
-              className="rounded-md border border-warning/40 bg-warning/10 px-3.5 py-2.5 text-[0.875rem] text-ink"
+              className="mb-3 rounded-md border border-warning/40 bg-warning/10 px-3.5 py-2.5 text-[0.875rem] text-ink"
             >
               {state.error}
             </p>
           )}
-
-          {/* No label, and no page heading above it either. The field IS
-              the title — the way it reads in WordPress — so a "Title"
-              caption over a box already holding the title, under an H1
-              already saying "New post", was the same word three times
-              before a single one had been written.
-
-              "Untitled" is a placeholder, so it is faint, it does not
-              have to be cleared before typing, and it is not what the
-              field contains. A placeholder is also not SUBMITTED, so
-              `savePostAction` substitutes the same word server-side when
-              the title comes back empty — which is what keeps "save it
-              without naming it and rename it later" working. The two
-              halves read `DEFAULT_TITLE` from lib/blog.ts so the word on
-              screen and the word that gets saved cannot drift.
-
-              No `required`, for the same reason: the browser would block
-              a submit that the server is perfectly happy to complete. */}
-          <input
-            name="title"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder={DEFAULT_TITLE}
-            aria-label="Title"
-            // `text-ink/25` rather than `text-muted`: muted is tuned for
-            // small print, and at 2rem semibold it still reads as text
-            // somebody wrote rather than as a prompt.
-            className="w-full border-0 bg-transparent p-0 text-[2rem] font-semibold tracking-[-0.024em] text-ink outline-none placeholder:text-ink/25 focus:ring-0"
-          />
 
           {/* No "Body" label and no live word count above it. The label
               named the obvious — it is the only thing under the title —
               and the counter sat at the top of an empty editor
               announcing "0 words · 0 blocks · ~1 min read" before
               anything had been written, which is chrome reporting on
-              nothing. */}
+              nothing.
+
+              The title is handed to the editor rather than rendered here
+              so that it can share the editor's pinned band with the
+              toolbar — see `header` on BodyEditor. */}
           <BodyEditor
+            header={
+              // No label, and no page heading above it either. The field
+              // IS the title — the way it reads in WordPress — so a
+              // "Title" caption over a box already holding the title,
+              // under an H1 already saying "New post", was the same word
+              // three times before a single one had been written.
+              //
+              // "Untitled" is a placeholder, so it is faint, it does not
+              // have to be cleared before typing, and it is not what the
+              // field contains. A placeholder is also not SUBMITTED, so
+              // `savePostAction` substitutes the same word server-side
+              // when the title comes back empty — which is what keeps
+              // "save it without naming it and rename it later" working.
+              // The two halves read `DEFAULT_TITLE` from lib/blog.ts so
+              // the word on screen and the word that gets saved cannot
+              // drift.
+              //
+              // No `required`, for the same reason: the browser would
+              // block a submit that the server is perfectly happy to
+              // complete.
+              <input
+                name="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder={DEFAULT_TITLE}
+                aria-label="Title"
+                // `text-ink/25` rather than `text-muted`: muted is tuned
+                // for small print, and at 2rem semibold it still reads as
+                // text somebody wrote rather than as a prompt.
+                className="w-full border-0 bg-transparent p-0 text-[2rem] font-semibold tracking-[-0.024em] text-ink outline-none placeholder:text-ink/25 focus:ring-0"
+              />
+            }
             value={post?.body ?? []}
             onChange={setBody}
             onSettings={openSettings}
