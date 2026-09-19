@@ -102,6 +102,23 @@ export type Block =
    * optional is how it happens.
    */
   | { type: "image"; src: string; alt: string; caption?: string }
+  /**
+   * A grid of cells, stored row by row.
+   *
+   * Quill's table model is a plain rectangle: no merged cells, no
+   * column widths, and nowhere to record which row is the header. So
+   * this stores exactly that much, and the FIRST ROW IS THE HEADER by
+   * convention — the article renders it as `th`, which is what lets a
+   * screen reader announce the column name as you move across a row,
+   * and what a search engine reads the table by. A table whose first
+   * row is data will look like a header; that is the cost of a model
+   * with nowhere to put the distinction, and the editor says so where
+   * the button lives.
+   *
+   * Every row carries the same number of cells — `deltaToBlocks` pads
+   * short ones — so the renderer never faces a ragged grid.
+   */
+  | { type: "table"; rows: Span[][][] }
   | { type: "hr" };
 
 /** Flattens a block's text, for word counts and anything else that
@@ -115,6 +132,14 @@ export function blockText(block: Block): string {
         .join(" ");
     case "code":
       return block.text;
+    case "table":
+      // Cell by cell, row by row: a table is prose a reader reads, so
+      // its words count toward reading time like any other block.
+      return block.rows
+        .map((row) =>
+          row.map((cell) => cell.map((s) => s.text).join("")).join(" "),
+        )
+        .join(" ");
     case "image":
       // The caption is prose on the page and counts toward reading
       // time; alt text is a description of a picture and does not.

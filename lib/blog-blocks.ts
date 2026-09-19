@@ -162,6 +162,37 @@ export function deltaToBlocks(delta: Delta): Block[] {
       continue;
     }
 
+    // A table. Quill stores no table node: every CELL is a line whose
+    // format carries the id of the row it belongs to, so consecutive
+    // lines sharing an id are one row, a run of rows is one table, and
+    // a cell's column is its position within its row.
+    if (typeof attrs.table === "string") {
+      const rows: Span[][][] = [];
+      let rowId: string | null = null;
+
+      while (i < lines.length && typeof lines[i].attrs.table === "string") {
+        const id = lines[i].attrs.table as string;
+        if (id !== rowId) {
+          rows.push([]);
+          rowId = id;
+        }
+        rows[rows.length - 1].push(lines[i].spans);
+        i += 1;
+      }
+
+      // Quill keeps its own tables rectangular, but a paste or a partial
+      // delete can leave a row short. Pad rather than drop: a missing
+      // cell would slide every cell after it one column to the left.
+      const width = Math.max(...rows.map((row) => row.length));
+      for (const row of rows) while (row.length < width) row.push([]);
+
+      // An empty grid is furniture, not content.
+      if (rows.some((row) => row.some(hasText))) {
+        blocks.push({ type: "table", rows });
+      }
+      continue;
+    }
+
     // Lists: consecutive lines of the same kind are one block.
     if (attrs.list === "bullet" || attrs.list === "ordered") {
       const kind = attrs.list;
@@ -247,6 +278,20 @@ function opsFor(spans: Span[]): DeltaOp[] {
     });
 }
 
+/**
+ * An id for one table row, in the shape Quill's own table module mints
+ * (`row-` + four base-36 characters).
+ *
+ * Minted here rather than imported: `tableId` lives in
+ * `quill/formats/table`, and importing it would pull the editor — a
+ * browser library that touches `document` as it loads — into a module
+ * that otherwise runs anywhere, server included. Only uniqueness within
+ * one document matters, which four random characters give.
+ */
+function rowId(): string {
+  return `row-${Math.random().toString(36).slice(2, 6)}`;
+}
+
 /** Closes a line. `attributes` is what Quill reads to decide the line's
  *  format, so this is where a block type is actually expressed. */
 function newline(attributes?: Record<string, unknown>): DeltaOp {
@@ -300,6 +345,18 @@ export function blocksToDelta(blocks: Block[]): Delta {
             },
           },
         });
+        break;
+
+      case "table":
+        // One line per CELL, each closed with its row's id — that id is
+        // the only thing telling Quill which cells belong together.
+        for (const row of block.rows) {
+          const id = rowId();
+          for (const cell of row) {
+            ops.push(...opsFor(cell));
+            ops.push(newline({ table: id }));
+          }
+        }
         break;
 
       case "hr":

@@ -326,6 +326,50 @@ function BlockView({ block, id }: { block: Block; id?: string }) {
         </figure>
       );
 
+    case "table":
+      // The first row is the header — see the `table` block in
+      // lib/blog.ts for why that is a convention rather than a flag.
+      // `scope="col"` is what pairs each cell with its column name for a
+      // screen reader; without it a table is just a grid of words.
+      //
+      // `overflow-x-auto` on the wrapper, exactly as the code block
+      // does it: a wide table scrolls inside its own box rather than
+      // widening the article and putting a horizontal scrollbar on the
+      // whole page.
+      return (
+        <div className="my-7 overflow-x-auto">
+          <table className="w-full border-collapse text-left text-[0.9375rem] leading-relaxed text-ink-soft">
+            <thead>
+              <tr>
+                {block.rows[0]?.map((cell, i) => (
+                  <th
+                    key={i}
+                    scope="col"
+                    className="border-b border-line px-3 py-2.5 align-top font-semibold text-ink"
+                  >
+                    <Spans spans={cell} />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows.slice(1).map((row, r) => (
+                <tr key={r}>
+                  {row.map((cell, c) => (
+                    <td
+                      key={c}
+                      className="border-b border-line-soft px-3 py-2.5 align-top"
+                    >
+                      <Spans spans={cell} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      );
+
     case "hr":
       return <hr className="my-10 border-0 border-t border-line" />;
 

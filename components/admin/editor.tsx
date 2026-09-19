@@ -43,12 +43,40 @@ const TOOLBAR = [
   ["link"],
   [{ list: "ordered" }, { list: "bullet" }],
   ["blockquote", "code-block"],
-  ["image", "divider"],
+  ["image", "table", "divider"],
   ["undo", "redo", "clean"],
   // A group of its own, so Quill's separator sets it apart: every other
   // control here acts on the selection, and this one acts on the post.
   ["settings"],
 ];
+
+/**
+ * Quill's table module, as much of it as this file calls.
+ *
+ * Declared rather than imported: the module's own types are not exported
+ * from a path that survives `quill`'s build, and importing the module
+ * would load a browser library during the server render.
+ *
+ * What it does NOT offer is worth knowing — no merged cells, no column
+ * widths, no header flag. The block model stores the same rectangle, so
+ * nothing in the toolbar promises an ability the saved post lacks.
+ */
+type TableModule = {
+  insertTable(rows: number, columns: number): void;
+  insertRowAbove(): void;
+  insertRowBelow(): void;
+  insertColumnLeft(): void;
+  insertColumnRight(): void;
+  deleteRow(): void;
+  deleteColumn(): void;
+  deleteTable(): void;
+  /** `[container, row, cell, offset]`; container is null outside a table. */
+  getTable(): [unknown, unknown, unknown, number];
+};
+
+/** Rows and columns a new table starts at: a header row and two rows of
+ *  data, which is the shape most posts want and the fastest to trim. */
+const NEW_TABLE = { rows: 3, columns: 3 };
 
 type ImageDraft = { src: string; alt: string; caption: string };
 
@@ -100,6 +128,10 @@ export function BodyEditor({
 
   const [draft, setDraft] = useState<ImageDraft | null>(null);
   const [imageError, setImageError] = useState<string | null>(null);
+  // Whether the caret is inside a table, which is what shows the row of
+  // table controls. Quill's toolbar is static DOM built once, so this
+  // row is React's and lives beside it in the band.
+  const [inTable, setInTable] = useState(false);
 
   // The callbacks and the seed value are held in refs so the effect that
   // builds Quill can run exactly once. A dependency on any of them would
@@ -147,6 +179,9 @@ export function BodyEditor({
           // undoes closer to a phrase at a time, which is what a writer
           // expects from ctrl+Z.
           history: { delay: 500, maxStack: 200, userOnly: true },
+          // Quill's own table module: plain rectangular tables, which is
+          // exactly what the `table` block stores.
+          table: true,
           toolbar: {
             container: slot,
             handlers: {
@@ -165,6 +200,14 @@ export function BodyEditor({
                 savedRange.current = this.quill.getSelection(true)?.index ?? 0;
                 setImageError(null);
                 setDraft(EMPTY_DRAFT);
+              },
+              // Inserts at the caret. The controls for growing, trimming
+              // and removing the table appear under the toolbar once the
+              // caret is inside one, rather than sitting here greyed out
+              // for the rest of the post.
+              table(this: { quill: InstanceType<typeof Quill> }) {
+                const table = this.quill.getModule("table") as TableModule;
+                table.insertTable(NEW_TABLE.rows, NEW_TABLE.columns);
               },
               undo(this: { quill: InstanceType<typeof Quill> }) {
                 this.quill.history.undo();
@@ -256,11 +299,24 @@ export function BodyEditor({
         frame = requestAnimationFrame(() => revealCaret.current());
       };
 
+      // Every edit and every caret move, including the ones this file
+      // makes itself — inserting a table leaves the caret in it, and the
+      // controls have to appear for that too. Compared before setting so
+      // typing inside a cell does not re-render the toolbar per key.
+      const watchTable = () => {
+        const table = editor.getModule("table") as TableModule;
+        const [container] = table.getTable();
+        const next = container != null;
+        setInTable((prev) => (prev === next ? prev : next));
+      };
+
       editor.on("text-change", handler);
       editor.on("editor-change", follow);
+      editor.on("editor-change", watchTable);
       detach = () => {
         editor.off("text-change", handler);
         editor.off("editor-change", follow);
+        editor.off("editor-change", watchTable);
         cancelAnimationFrame(frame);
       };
     })();
@@ -318,6 +374,21 @@ export function BodyEditor({
     });
   };
 
+  /**
+   * Runs one table command against the live editor.
+   *
+   * Each command reads the current selection, so the caret has to be
+   * back in the cell before it runs — the buttons block the mousedown
+   * that would otherwise blur it, and this focuses again anyway for the
+   * case where focus went elsewhere entirely.
+   */
+  const withTable = (act: (table: TableModule) => void) => {
+    const editor = quill.current;
+    if (!editor) return;
+    editor.focus();
+    act(editor.getModule("table") as TableModule);
+  };
+
   const field =
     "w-full rounded-md border border-line bg-surface px-3 py-2 text-[0.875rem] text-ink outline-none placeholder:text-muted focus:border-accent";
 
@@ -348,6 +419,44 @@ export function BodyEditor({
       <div ref={band} className="sticky top-16 z-20 bg-paper pt-3 pb-3">
         {header}
         <div ref={toolbarSlot} className="mt-4 min-h-10.5" />
+
+        {/* Table controls, only while the caret is in a table.
+            A row of its own rather than buttons in the toolbar above:
+            every one of them is meaningless outside a table, and a row
+            of permanently greyed-out buttons is worse than none. It sits
+            inside the pinned band, so editing a long table keeps them in
+            reach. */}
+        {inTable && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5 border-t border-line-soft pt-2">
+            <span className="mr-1 text-[0.6875rem] font-semibold tracking-wide text-muted uppercase">
+              Table
+            </span>
+            <TableButton onClick={() => withTable((t) => t.insertRowAbove())}>
+              Row above
+            </TableButton>
+            <TableButton onClick={() => withTable((t) => t.insertRowBelow())}>
+              Row below
+            </TableButton>
+            <TableButton onClick={() => withTable((t) => t.insertColumnLeft())}>
+              Column left
+            </TableButton>
+            <TableButton onClick={() => withTable((t) => t.insertColumnRight())}>
+              Column right
+            </TableButton>
+            <TableButton onClick={() => withTable((t) => t.deleteRow())}>
+              Delete row
+            </TableButton>
+            <TableButton onClick={() => withTable((t) => t.deleteColumn())}>
+              Delete column
+            </TableButton>
+            <TableButton onClick={() => withTable((t) => t.deleteTable())}>
+              Delete table
+            </TableButton>
+            <span className="ml-auto text-[0.6875rem] text-muted">
+              The first row is the header
+            </span>
+          </div>
+        )}
       </div>
 
       <div ref={host} />
@@ -450,6 +559,32 @@ export function BodyEditor({
 }
 
 /**
+ * One button in the table row.
+ *
+ * `onMouseDown` is prevented for the same reason Quill's own toolbar
+ * does it: pressing a button would otherwise blur the editor first, and
+ * every one of these commands acts on the selection it just lost.
+ */
+function TableButton({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onMouseDown={(e) => e.preventDefault()}
+      onClick={onClick}
+      className="rounded-md border border-line px-2 py-1 text-[0.75rem] font-medium text-ink-soft transition-colors hover:border-ink/25 hover:text-ink"
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
  * One-time registration of what Quill does not ship.
  *
  * Guarded because this module is imported once but the editor mounts
@@ -473,6 +608,9 @@ function registerFormats(Quill: typeof import("quill").default) {
   const icons = Quill.import("ui/icons") as Record<string, string>;
   icons.undo = `<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M5 7H11a3.5 3.5 0 0 1 0 7H8"/><path class="ql-stroke" d="M7.5 4.5 4.5 7l3 2.5"/></svg>`;
   icons.redo = `<svg viewBox="0 0 18 18"><path class="ql-stroke" d="M13 7H7a3.5 3.5 0 0 0 0 7h3"/><path class="ql-stroke" d="M10.5 4.5 13.5 7l-3 2.5"/></svg>`;
+  // A grid: outer box plus one line each way. Drawn on Quill's own
+  // 18-unit viewBox so its stroke matches the buttons beside it.
+  icons.table = `<svg viewBox="0 0 18 18"><rect class="ql-stroke" x="3" y="4" width="12" height="10" rx="1"/><path class="ql-stroke" d="M3 7.5h12"/><path class="ql-stroke" d="M9 7.5V14"/></svg>`;
   // A gear, drawn on a 24-unit grid because the teeth do not survive
   // being drawn at 18. The button scales it down to Quill's 18, which
   // would thin the stroke to match; the inline width puts it back in

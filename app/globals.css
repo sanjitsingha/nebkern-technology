@@ -451,6 +451,37 @@ body {
   color: var(--panel-fg);
 }
 
+/* Tables in the editor.
+
+   Quill draws nothing but bare `td`s, so without this a table is an
+   unreadable run of words. The cell borders are the editing aid — the
+   article's own table shows only horizontal rules — and the first row is
+   given the header's weight because that is what publishing it does
+   (see the `table` block in lib/blog.ts).
+
+   `table-layout: fixed` keeps the columns even as cells fill up, so
+   typing a long sentence in one cell does not squeeze its neighbours to
+   nothing while the writer is mid-thought. */
+.quill-host .ql-editor table {
+  width: 100%;
+  margin: 1.2rem 0;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 0.9375rem;
+}
+
+.quill-host .ql-editor table td {
+  border: 1px solid var(--line);
+  padding: 0.4rem 0.6rem;
+  vertical-align: top;
+}
+
+.quill-host .ql-editor table tr:first-child td {
+  background: var(--surface-2);
+  font-weight: 600;
+  color: var(--ink);
+}
+
 /* Images in the editor. Capped so a 2000px asset does not push the
    toolbar off screen, and given the same rounded corner the article
    renders, so what the writer sees matches what publishes. */
