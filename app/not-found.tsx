@@ -16,7 +16,7 @@ const DESTINATIONS = [
   {
     href: "/products",
     title: "Products",
-    body: "Instant, Ask Maya and Flowra CRM.",
+    body: "Instant, Ask Maya, Flowra CRM and Vichento.",
   },
   {
     href: "/about",

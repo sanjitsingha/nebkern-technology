@@ -34,6 +34,17 @@ export interface Product {
   hue: string;
   href?: string;
   /**
+   * The public source repository, where the product has one.
+   *
+   * Deliberately not `href`. A repository is not a product's site: it is
+   * not what the nav and footer send people to, and it is not a URL to
+   * publish as the product's own in structured data — /products lists a
+   * SoftwareApplication only for products with a real site, so that a
+   * search engine is never pointed at source code as though it were
+   * software somebody can use.
+   */
+  repo?: string;
+  /**
    * Where an existing customer signs in, as opposed to `href`, which is
    * the product's marketing site.
    *
@@ -134,6 +145,35 @@ export const PRODUCTS: Product[] = [
     // Warm amber — clear of Instant's green, Ask Maya's violet and the
     // indigo the parent brand uses.
     hue: "oklch(0.615 0.152 52)",
+    isApp: true,
+  },
+  {
+    /**
+     * The kicker and description are taken from Vichento's OWN copy in
+     * its repository, not written here: the page title is "Vichento —
+     * Read. Write. Think deeper", and its landing page reads "Human
+     * stories & ideas" over "A place to read, write, and deepen your
+     * understanding". That is the whole of what this site claims about
+     * it.
+     *
+     * It has no site yet — the repository's homepage field points at a
+     * deployment that 404s — so there is no `href`, and no capability
+     * list: /products says it is in development instead of announcing
+     * features. Replace both the moment Vichento publishes its own page.
+     */
+    slug: "vichento",
+    name: "Vichento",
+    kicker: "A place to read and write",
+    description:
+      "A reading and writing platform for long-form pieces: somewhere to publish human stories and ideas, and somewhere to read them.",
+    status: "development",
+    // The user's own word for where it is, rather than the catalogue's
+    // default "Coming soon".
+    statusLabel: "Launching soon",
+    // Teal, and the fourth distinct hue: far enough from Instant's green
+    // (146) and the parent indigo (267) that no two products read as one.
+    hue: "oklch(0.54 0.12 210)",
+    repo: "https://github.com/sanjitsingha/vichento",
     isApp: true,
   },
 ];

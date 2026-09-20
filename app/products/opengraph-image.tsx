@@ -7,6 +7,6 @@ export const contentType = "image/png";
 export default function Image() {
   return renderOgImage({
     eyebrow: "Products",
-    title: "Instant, Ask Maya and Flowra CRM.",
+    title: "Instant, Ask Maya, Flowra CRM and Vichento.",
   });
 }

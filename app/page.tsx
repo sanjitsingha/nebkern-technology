@@ -1,6 +1,6 @@
 import { Nav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
-import { Apps } from "@/components/site/apps";
+import { ProductsBand } from "@/components/site/products-band";
 import { MayaSpotlight } from "@/components/site/maya-spotlight";
 import { Slider } from "@/components/site/slider";
 import { Banner } from "@/components/site/banner";
@@ -35,9 +35,11 @@ export default function Home() {
             just delay the first thing anyone reads. */}
         <Hero />
 
-        <Reveal>
-          <Apps />
-        </Reveal>
+        {/* The products, on the gradient band — and the hero's one
+            button lands here. Not wrapped in `Reveal`, for the hero's
+            reason: it sits at the top of the page, so there is nothing
+            for it to scroll into. */}
+        <ProductsBand />
         {/* Straight after the apps slab, which leaves Maya out because
             she is not an app of her own — this is where the homepage
             makes up for it, and points at the playground. */}

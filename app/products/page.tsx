@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Image from "next/image";
 
 import {
+  IconArrowUpRight,
   IconBadgeCheck,
   IconCheck,
   IconLock,
@@ -24,10 +25,13 @@ import { ORGANIZATION_ID, pageMetadata, webPageJsonLd } from "@/lib/seo";
 import { LINKS, SITE } from "@/lib/site";
 
 const DESCRIPTION =
-  "Software built, hosted and supported by Nebkern Technology: Instant for sales and support on WhatsApp, the Ask Maya AI agent, and Flowra CRM, in development.";
+  "Software built, hosted and supported by Nebkern Technology: Instant for WhatsApp sales and support, the Ask Maya AI agent, Flowra CRM and Vichento.";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Products — Instant, Ask Maya, Flowra CRM",
+  // Not an enumeration any more: with four products the list either
+  // dropped one or ran past the width a result shows. The description
+  // below names all four.
+  title: "Products",
   description: DESCRIPTION,
   path: "/products",
   shareTitle: `Products — ${SITE.name}`,
@@ -107,9 +111,20 @@ function actionsFor(product: Product) {
     );
   }
   return (
-    <ButtonLink href="/contact" variant="secondary">
-      Ask us about {product.name}
-    </ButtonLink>
+    <>
+      <ButtonLink href="/contact" variant="secondary">
+        Ask us about {product.name}
+      </ButtonLink>
+      {/* Only where there is one. It is the source, not a way to use the
+          product, so it stays the quieter of the two and never replaces
+          the way to reach a person about it. */}
+      {product.repo && (
+        <ButtonLink href={product.repo} variant="secondary" arrow={false}>
+          Source on GitHub
+          <IconArrowUpRight className="h-3.5 w-3.5" />
+        </ButtonLink>
+      )}
+    </>
   );
 }
 
