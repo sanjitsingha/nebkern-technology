@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Manrope, JetBrains_Mono } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 
 import { PRODUCTS } from "@/lib/products";
@@ -171,6 +172,12 @@ const SITE_JSONLD = {
   ],
 };
 
+/** The GA4 property for nebkern.com. Public by nature — it ships in the
+ *  page source on every site that measures anything — so it sits here
+ *  rather than in an environment variable nobody could set without a
+ *  redeploy anyway. */
+const GA_ID = "G-CTJV1F5QR7";
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
@@ -196,6 +203,30 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           }}
         />
         {children}
+
+        {/* Google Analytics 4.
+
+            `next/script` rather than the raw tags: `afterInteractive`
+            loads it once the page is usable, so measurement never
+            competes with the page's own rendering, and Next keeps it
+            to a single load across client-side navigations — a plain
+            <script> in the App Router can be re-executed or dropped
+            depending on where it lands.
+
+            The second block is `gtag('config')`, which records the
+            first page view. Route changes after that are counted by
+            GA4's own history listener, so there is nothing to wire up
+            per page. */}
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="ga4" strategy="afterInteractive">
+          {`window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${GA_ID}');`}
+        </Script>
       </body>
     </html>
   );
