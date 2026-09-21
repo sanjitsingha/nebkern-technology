@@ -60,6 +60,17 @@ export interface Product {
    *  height are required: the build cannot measure a file it does not
    *  fetch, and without them the layout jumps when the image lands. */
   logo?: { src: string; width: number; height: number };
+  /**
+   * Art for the homepage card's picture band, which is locked to 3:2 —
+   * so make it that shape (1200 × 800 or larger) and nothing is cropped
+   * at any width. It has to be in `public/` or on a host next.config.ts
+   * allows, like the lockups.
+   *
+   * Absent for now on every product: the card then draws a panel tinted
+   * in the product's own colour carrying its lockup or its name, rather
+   * than a stock photograph of something the product is not.
+   */
+  image?: string;
   /** True for a product you can open on its own. False for one that
    *  ships inside another — the hero's "Explore apps" strip lists only
    *  the standalone ones, while the catalogue below lists everything. */

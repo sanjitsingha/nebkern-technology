@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type CSSProperties,
+  type ReactNode,
 } from "react";
 import Image from "next/image";
 import Link from "next/link";
@@ -69,59 +70,104 @@ function ProductCard({ product }: { product: Product }) {
     >
       <Anchor
         href={href}
-        // `min-h` rather than a fixed height: the card is at least this
-        // tall, and a longer kicker grows it rather than spilling out.
-        // The kicker's `flex-1` holds the action to the bottom edge, so
-        // the extra height opens between the two, not under the link.
-        className="group flex h-full min-h-88 flex-col rounded-lg bg-surface p-7 transition-transform hover:-translate-y-0.5"
+        // Picture on top, words underneath — the shape Instant's own
+        // feature rail uses. No fixed height: the band takes its height
+        // from the card's width and the text sizes itself, and a flex row
+        // stretches every card to the tallest, so they still line up.
+        className="group flex h-full flex-col overflow-hidden rounded-lg bg-surface transition-transform hover:-translate-y-0.5"
       >
-        <span
-          className={`inline-flex items-center gap-2 text-[0.75rem] font-semibold ${
-            pending ? "text-warning" : "text-ink-soft"
-          }`}
+        {/* The picture band, locked to 3:2 so art made at that shape
+            fills it at any width. Until a product has art, it is a panel
+            tinted in the product's own colour carrying its mark — see
+            `image` in lib/products.ts. */}
+        <div
+          className="relative aspect-3/2 shrink-0"
+          style={{
+            background: "color-mix(in oklab, var(--hue) 13%, var(--surface))",
+          }}
         >
-          <span
-            className="size-1.5 shrink-0"
-            style={{ background: pending ? "var(--warning)" : "var(--hue)" }}
-            aria-hidden="true"
-          />
-          {label}
-        </span>
-
-        {/* The lockup IS the name where there is one, so nothing prints
-            it twice. */}
-        <h3 className="mt-4 flex items-center">
-          {product.logo ? (
+          {product.image ? (
             <Image
-              src={product.logo.src}
-              alt={product.name}
-              width={Math.round(
-                LOGO_H * (product.logo.width / product.logo.height),
-              )}
-              height={LOGO_H}
-              className="h-7 w-auto"
+              src={product.image}
+              alt=""
+              fill
+              sizes="(min-width: 640px) 40vw, 85vw"
+              className="object-cover"
             />
           ) : (
-            <span className="text-[1.25rem] font-semibold tracking-[-0.02em] text-ink">
-              {product.name}
-            </span>
+            <div
+              aria-hidden="true"
+              className="flex h-full items-center justify-center px-6"
+            >
+              {product.logo ? (
+                <Image
+                  src={product.logo.src}
+                  alt=""
+                  width={Math.round(
+                    LOGO_H * (product.logo.width / product.logo.height),
+                  )}
+                  height={LOGO_H}
+                  className="h-8 w-auto sm:h-9"
+                />
+              ) : (
+                // Ink, not the product's hue: at this size the hue on its
+                // own tint falls near the 4.5:1 line, and the tint behind
+                // it is already carrying the colour.
+                <span className="text-center text-[1.5rem] font-semibold tracking-[-0.02em] text-ink sm:text-[1.75rem]">
+                  {product.name}
+                </span>
+              )}
+            </div>
           )}
-        </h3>
+        </div>
 
-        <p className="mt-2.5 flex-1 text-[0.9375rem] leading-relaxed text-muted text-pretty">
-          {product.kicker}
-        </p>
+        <div className="flex flex-1 flex-col p-6 sm:p-7">
+          <span
+            className={`inline-flex items-center gap-2 text-[0.75rem] font-semibold ${
+              pending ? "text-warning" : "text-ink-soft"
+            }`}
+          >
+            <span
+              className="size-1.5 shrink-0"
+              style={{ background: pending ? "var(--warning)" : "var(--hue)" }}
+              aria-hidden="true"
+            />
+            {label}
+          </span>
 
-        <span className="mt-5 inline-flex items-center gap-1.5 text-[0.875rem] font-semibold text-ink transition-colors group-hover:text-accent">
-          {product.href ? `Visit ${product.name}` : "What it is"}
-          <Arrow />
-        </span>
+          {/* The name in words here, whatever the band showed: a lockup
+              read twice is the name said twice. */}
+          <h3 className="mt-3 text-[1.25rem] font-semibold tracking-[-0.02em] text-ink">
+            {product.name}
+          </h3>
+
+          <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted text-pretty">
+            {product.kicker}
+          </p>
+
+          {/* `mt-auto` so every card's action sits on the same line,
+              however long the line above it runs. */}
+          <span className="mt-auto inline-flex items-center gap-1.5 pt-6 text-[0.875rem] font-semibold text-ink transition-colors group-hover:text-accent">
+            {product.href ? `Visit ${product.name}` : "What it is"}
+            <Arrow />
+          </span>
+        </div>
       </Anchor>
     </li>
   );
 }
 
-export function ProductCarousel({ products }: { products: Product[] }) {
+export function ProductCarousel({
+  products,
+  children,
+}: {
+  products: Product[];
+  /** The band's heading and paragraph. They sit above the buttons in the
+   *  left column, so the whole two-column layout lives here rather than
+   *  in the band — the buttons are on one side and what they scroll is
+   *  on the other. */
+  children: ReactNode;
+}) {
   const track = useRef<HTMLUListElement>(null);
   const [atStart, setAtStart] = useState(true);
   const [atEnd, setAtEnd] = useState(false);
@@ -165,32 +211,40 @@ export function ProductCarousel({ products }: { products: Product[] }) {
     });
   };
 
+  // Solid white with an ink arrow. It also settles the contrast: an
+  // outline ring measured 1.7:1 against the gradient, under the 3:1 a
+  // control needs, where a white disc on the blue is 9:1 and the arrow
+  // inside it 17:1.
   const button =
-    "grid size-10 shrink-0 place-items-center rounded-full border border-white/45 text-white transition-colors hover:border-white hover:bg-white/10 disabled:opacity-35 disabled:hover:bg-transparent";
+    "grid size-11 shrink-0 place-items-center rounded-full bg-white text-ink transition-opacity hover:opacity-90 disabled:opacity-40";
 
   return (
-    <div className="min-w-0">
-      {/* Top right of the carousel, which on a desktop is the top right
-          of the band. */}
-      <div className="mb-5 flex justify-end gap-2">
-        <button
-          type="button"
-          onClick={() => step(-1)}
-          disabled={atStart}
-          aria-label="Previous products"
-          className={button}
-        >
-          <Arrow back />
-        </button>
-        <button
-          type="button"
-          onClick={() => step(1)}
-          disabled={atEnd}
-          aria-label="Next products"
-          className={button}
-        >
-          <Arrow />
-        </button>
+    // The cards take eight columns of twelve so that a pair of them is
+    // wide enough to be read across the band rather than glanced at.
+    <div className="flex flex-col gap-12 lg:grid lg:grid-cols-[4fr_8fr] lg:items-center lg:gap-14">
+      <div>
+        {children}
+
+        <div className="mt-9 flex gap-3">
+          <button
+            type="button"
+            onClick={() => step(-1)}
+            disabled={atStart}
+            aria-label="Previous products"
+            className={button}
+          >
+            <Arrow back />
+          </button>
+          <button
+            type="button"
+            onClick={() => step(1)}
+            disabled={atEnd}
+            aria-label="Next products"
+            className={button}
+          >
+            <Arrow />
+          </button>
+        </div>
       </div>
 
       {/* `tabIndex` because a scrollable region has to be reachable by
@@ -202,7 +256,7 @@ export function ProductCarousel({ products }: { products: Product[] }) {
         onScroll={sync}
         tabIndex={0}
         aria-label="Products"
-        className="flex snap-x snap-mandatory gap-4 overflow-x-auto pb-1 scrollbar-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white [&::-webkit-scrollbar]:hidden"
+        className="flex min-w-0 snap-x snap-mandatory gap-4 overflow-x-auto pb-1 scrollbar-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white [&::-webkit-scrollbar]:hidden"
       >
         {products.map((product) => (
           <ProductCard key={product.slug} product={product} />

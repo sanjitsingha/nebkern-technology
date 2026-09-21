@@ -1,6 +1,3 @@
-import Link from "next/link";
-
-import { Arrow } from "@/components/site/page";
 import { ProductCarousel } from "@/components/site/product-carousel";
 import { PRODUCTS } from "@/lib/products";
 
@@ -34,8 +31,10 @@ export function ProductsBand() {
       aria-labelledby="products-heading"
       className={`scroll-mt-20 ${GRADIENT}`}
     >
-      <div className="mx-auto flex max-w-7xl flex-col justify-center gap-12 px-5 py-12 sm:px-8 sm:py-16 lg:grid lg:grid-cols-[5fr_7fr] lg:items-center lg:gap-16">
-        <div>
+      <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
+        {/* The carousel owns the two columns: its buttons sit under this
+            copy on the left, and what they scroll is on the right. */}
+        <ProductCarousel products={PRODUCTS}>
           <h2
             id="products-heading"
             className="display text-[clamp(2rem,3.8vw,2.75rem)] font-semibold text-white text-balance"
@@ -44,24 +43,12 @@ export function ProductsBand() {
           </h2>
 
           {/* white/80 rather than a grey: on this blue it reads as the
-              same ink at a lower weight, and still clears AA at 7.2:1. */}
+              same ink at a lower weight, and still clears AA at 6.3:1. */}
           <p className="mt-5 text-[1.0625rem] leading-relaxed text-white/80 text-pretty">
             Both built, hosted and supported by the same team, on infrastructure
             we run ourselves. Adopt one and the next is already configured.
           </p>
-
-          <Link
-            href="/products"
-            className="group mt-8 inline-flex items-center gap-2 text-[0.9375rem] font-semibold text-white"
-          >
-            <span className="border-b border-white/40 pb-0.5 transition-colors group-hover:border-white">
-              All products
-            </span>
-            <Arrow />
-          </Link>
-        </div>
-
-        <ProductCarousel products={PRODUCTS} />
+        </ProductCarousel>
       </div>
     </section>
   );
