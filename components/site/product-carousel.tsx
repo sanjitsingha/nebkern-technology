@@ -11,6 +11,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
+import { AnimatedGradientText } from "@/components/ui/animated-gradient-text";
 import { STATUS_LABEL, type Product } from "@/lib/products";
 
 /**
@@ -56,7 +57,11 @@ function ProductCard({ product }: { product: Product }) {
   // entry on /products, which is the page that says what it is and when.
   const href = product.href ?? `/products#${product.slug}`;
   const label = product.statusLabel ?? STATUS_LABEL[product.status];
-  const pending = product.status === "development";
+  // Only what has not shipped carries a badge. "Live" on a live product
+  // labels the default state as though it were news; the signal worth
+  // giving is the opposite one — that a card cannot be used yet. So the
+  // badge is always the gold warning, and a live card has none at all.
+  const upcoming = product.status !== "live";
   const Anchor = product.href ? "a" : Link;
 
   return (
@@ -119,25 +124,74 @@ function ProductCard({ product }: { product: Product }) {
               )}
             </div>
           )}
+
+          {/* Top right of the picture rather than the first line of the
+              text block. An outline rather than a filled pill: the gold
+              rule marks the badge out without laying a white slab over
+              the artwork.
+
+              The cost is that the label now sits on whatever the picture
+              happens to be, so its contrast is the picture's to decide.
+              That holds on the tinted panels these cards carry today; if
+              one ever gets art with light pixels in that corner, the
+              badge needs a ground under it again.
+
+              A sibling of the picture, not a child of the `aria-hidden`
+              fallback above it, so it stays in the reading order — and
+              it still comes before the name, exactly as it did when it
+              led the text block. */}
+          {upcoming && (
+            <span className="absolute top-3 right-3 inline-flex items-center gap-2 rounded-full border border-warning px-2.5 py-1 text-[0.75rem] font-semibold">
+              {/* A drawn bell rather than the 🔔 emoji. An emoji renders
+                  in whatever colours the reader's platform ships, which
+                  would drag a third palette into a badge built from two
+                  — and it sits on its own baseline. This is the same
+                  line-drawn currentColor style as every other icon here. */}
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="h-3.5 w-3.5 shrink-0 text-warning"
+                aria-hidden="true"
+              >
+                <path d="M8 2.6a3.4 3.4 0 0 0-3.4 3.4c0 2.3-.5 3.2-.9 3.6a.4.4 0 0 0 .3.7h8a.4.4 0 0 0 .3-.7c-.4-.4-.9-1.3-.9-3.6A3.4 3.4 0 0 0 8 2.6Z" />
+                <path d="M6.7 12a1.4 1.4 0 0 0 2.6 0" />
+              </svg>
+
+              {/* The rule between the two, as sketched. Gold at 40% so it
+                  separates without becoming a third stroke competing
+                  with the bell and the border around them. */}
+              <span
+                className="h-3 w-px shrink-0 bg-warning/40"
+                aria-hidden="true"
+              />
+              {/* The site's own two accents rather than the component's
+                  orange-to-purple default, which belongs to no part of
+                  this palette. Gold is what "not out yet" has always
+                  been here; the indigo it travels through is the parent
+                  brand's. Both clear AA on the panel behind
+                  them, so the label holds at every point of the sweep.
+
+                  The bell beside it stays flat gold. Two things pulsing
+                  in the same badge would be a badge asking for more
+                  attention than a release date deserves. */}
+              <AnimatedGradientText
+                colorFrom="var(--warning)"
+                colorTo="var(--accent)"
+              >
+                {label}
+              </AnimatedGradientText>
+            </span>
+          )}
         </div>
 
         <div className="flex flex-1 flex-col p-6 sm:p-7">
-          <span
-            className={`inline-flex items-center gap-2 text-[0.75rem] font-semibold ${
-              pending ? "text-warning" : "text-ink-soft"
-            }`}
-          >
-            <span
-              className="size-1.5 shrink-0"
-              style={{ background: pending ? "var(--warning)" : "var(--hue)" }}
-              aria-hidden="true"
-            />
-            {label}
-          </span>
-
           {/* The name in words here, whatever the band showed: a lockup
               read twice is the name said twice. */}
-          <h3 className="mt-3 text-[1.25rem] font-semibold tracking-[-0.02em] text-ink">
+          <h3 className="text-[1.25rem] font-semibold tracking-[-0.02em] text-ink">
             {product.name}
           </h3>
 

@@ -177,10 +177,10 @@ export const PRODUCTS: Product[] = [
     kicker: "A place to read and write",
     description:
       "A reading and writing platform for long-form pieces: somewhere to publish human stories and ideas, and somewhere to read them.",
+    // No `statusLabel` override any more. It falls back to the
+    // catalogue's own "Coming soon", so the two unreleased products say
+    // the same thing rather than one launching and the other coming.
     status: "development",
-    // The user's own word for where it is, rather than the catalogue's
-    // default "Coming soon".
-    statusLabel: "Launching soon",
     // Teal, and the fourth distinct hue: far enough from Instant's green
     // (146) and the parent indigo (267) that no two products read as one.
     hue: "oklch(0.54 0.12 210)",

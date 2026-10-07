@@ -47,6 +47,17 @@
   --font-sans: var(--font-sans-family), ui-sans-serif, system-ui, sans-serif;
   --font-mono:
     var(--font-mono-family), ui-monospace, SFMono-Regular, Menlo, monospace;
+  /* Magic UI's animated gradient text. The keyframe only slides the
+     background across; the component supplies --bg-size, and the two
+     colours come from the site's own tokens at the call site rather
+     than the component's orange-to-purple defaults. */
+  --animate-gradient: gradient 8s linear infinite;
+
+  @keyframes gradient {
+    to {
+      background-position: var(--bg-size, 300%) 0;
+    }
+  }
 }
 
 :root {
@@ -253,7 +264,7 @@ body {
 }
 
 /* Scroll-revealed statement.
-   
+
    The whole effect is one custom property. JS writes `--p` (0→1, how
    far the paragraph has travelled through the viewport) and each word
    works out its own opacity from its index — so scrolling updates a

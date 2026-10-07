@@ -34,7 +34,13 @@ export function ProductsBand() {
       <div className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16">
         {/* The carousel owns the two columns: its buttons sit under this
             copy on the left, and what they scroll is on the right. */}
-        <ProductCarousel products={PRODUCTS}>
+        {/* Standalone products only. Ask Maya ships inside Instant and
+            already has a band of its own further down this page, so a
+            card here said the same thing twice. `isApp` is the
+            catalogue's own word for that distinction, which keeps any
+            future ships-inside-something product out of the carousel
+            without this line being revisited. */}
+        <ProductCarousel products={PRODUCTS.filter((p) => p.isApp)}>
           <h2
             id="products-heading"
             className="display text-[clamp(2rem,3.8vw,2.75rem)] font-semibold text-white text-balance"
