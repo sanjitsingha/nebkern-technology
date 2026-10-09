@@ -193,201 +193,247 @@ export function Nav() {
   }, [menu]);
 
   return (
-    // Solid white with a hairline, at rest and scrolled alike. `bg-surface`
-    // is true white where `--paper` is the page's warm off-white, so the
-    // bar reads as a distinct plane above the page rather than blending
-    // into it.
-    <header className="sticky top-0 z-50 border-b border-line bg-surface">
-      {/* Rendered once, driven by both triggers. A native dialog lives
+    <>
+      <TopLine />
+
+      {/* Solid white with a hairline, at rest and scrolled alike.
+          `bg-surface` is true white where `--paper` is the page's warm
+          off-white, so the bar reads as a distinct plane above the page
+          rather than blending into it. */}
+      <header className="sticky top-0 z-50 border-b border-line bg-surface">
+        {/* Rendered once, driven by both triggers. A native dialog lives
           in the browser's top layer, so being nested inside this sticky
           `z-50` header does not trap it underneath anything. */}
-      <AppsModal open={appsOpen} onClose={() => setAppsOpen(false)} />
+        <AppsModal open={appsOpen} onClose={() => setAppsOpen(false)} />
 
-      <nav
-        aria-label="Main"
-        className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8"
-      >
-        {/* Wordmark and links are one left-hand group, so the links sit
+        <nav
+          aria-label="Main"
+          className="mx-auto flex h-20 max-w-6xl items-center justify-between gap-6 px-5 sm:px-8"
+        >
+          {/* Wordmark and links are one left-hand group, so the links sit
             beside the brand rather than floating in the centre.
             `justify-between` on the bar then has two children to push
             apart — this group and the actions — instead of three. */}
-        <div ref={barRef} className="flex items-center gap-9">
-          <Link
-            href="/"
-            className="text-ink outline-offset-4 focus-visible:outline-2 focus-visible:outline-accent"
-          >
-            <Logo />
-            <span className="sr-only">Nebkern Technology — home</span>
-          </Link>
+          <div ref={barRef} className="flex items-center gap-9">
+            <Link
+              href="/"
+              className="text-ink outline-offset-4 focus-visible:outline-2 focus-visible:outline-accent"
+            >
+              <Logo />
+              <span className="sr-only">Nebkern Technology — home</span>
+            </Link>
 
-          <ul className="hidden items-center gap-7 md:flex">
-            {MENUS.map(({ label, items }) => (
-              <li
-                key={label}
-                className="relative"
-                // Hover is the expected way to open a nav menu with a
-                // mouse, but firing it on touch would open the panel and
-                // then immediately toggle it shut on the click that
-                // follows. Guarding on pointerType keeps both honest.
-                onPointerEnter={(e) => {
-                  if (e.pointerType === "mouse") setMenu(label);
-                }}
-                onPointerLeave={(e) => {
-                  if (e.pointerType === "mouse") setMenu(null);
-                }}
-              >
-                <button
-                  type="button"
-                  aria-expanded={menu === label}
-                  aria-haspopup="true"
-                  // Three input types, three rules. On a MOUSE the
-                  // hover handlers already own open/close, so a click
-                  // must do nothing — otherwise hovering opens the panel
-                  // and the click that follows shuts it again, which is
-                  // exactly what it looks like when a menu is broken.
-                  // Touch and pen toggle on pointerdown. Keyboard
-                  // activation arrives as a click with `detail === 0`
-                  // and no pointer event at all, so it is handled here.
-                  onPointerDown={(e) => {
-                    if (e.pointerType !== "mouse") {
-                      setMenu((m) => (m === label ? null : label));
-                    }
+            <ul className="hidden items-center gap-7 md:flex">
+              {MENUS.map(({ label, items }) => (
+                <li
+                  key={label}
+                  className="relative"
+                  // Hover is the expected way to open a nav menu with a
+                  // mouse, but firing it on touch would open the panel and
+                  // then immediately toggle it shut on the click that
+                  // follows. Guarding on pointerType keeps both honest.
+                  onPointerEnter={(e) => {
+                    if (e.pointerType === "mouse") setMenu(label);
                   }}
-                  onClick={(e) => {
-                    if (e.detail === 0) {
-                      setMenu((m) => (m === label ? null : label));
-                    }
+                  onPointerLeave={(e) => {
+                    if (e.pointerType === "mouse") setMenu(null);
                   }}
-                  className={`flex items-center gap-1.5 text-[1.0625rem] font-semibold transition-colors ${
-                    menu === label
-                      ? "text-accent"
-                      : "text-ink hover:text-accent"
-                  }`}
                 >
-                  {label}
-                  <Chevron open={menu === label} />
-                </button>
+                  <button
+                    type="button"
+                    aria-expanded={menu === label}
+                    aria-haspopup="true"
+                    // Three input types, three rules. On a MOUSE the
+                    // hover handlers already own open/close, so a click
+                    // must do nothing — otherwise hovering opens the panel
+                    // and the click that follows shuts it again, which is
+                    // exactly what it looks like when a menu is broken.
+                    // Touch and pen toggle on pointerdown. Keyboard
+                    // activation arrives as a click with `detail === 0`
+                    // and no pointer event at all, so it is handled here.
+                    onPointerDown={(e) => {
+                      if (e.pointerType !== "mouse") {
+                        setMenu((m) => (m === label ? null : label));
+                      }
+                    }}
+                    onClick={(e) => {
+                      if (e.detail === 0) {
+                        setMenu((m) => (m === label ? null : label));
+                      }
+                    }}
+                    className={`flex items-center gap-1.5 text-[1.0625rem] font-semibold transition-colors ${
+                      menu === label
+                        ? "text-accent"
+                        : "text-ink hover:text-accent"
+                    }`}
+                  >
+                    {label}
+                    <Chevron open={menu === label} />
+                  </button>
 
-                {menu === label && (
-                  // The wrapper's top padding is a hover bridge — without
-                  // it the gap between button and panel counts as
-                  // "outside", and the menu closes as the pointer crosses.
-                  <div className="absolute top-full left-0 pt-3">
-                    {/* The padding is on the panel rather than on the
+                  {menu === label && (
+                    // The wrapper's top padding is a hover bridge — without
+                    // it the gap between button and panel counts as
+                    // "outside", and the menu closes as the pointer crosses.
+                    <div className="absolute top-full left-0 pt-3">
+                      {/* The padding is on the panel rather than on the
                         rows. Nothing fills behind a row on hover — the
                         colour change is the whole state — so padding the
                         container costs no hit area, keeps the rows the
                         same object the mobile sheet uses, and leaves the
                         distance between them exactly as it was. */}
-                    <ul className="min-w-64 rounded-sm border border-line bg-surface p-4 shadow-[0_10px_28px_-14px_rgb(0_0_0/0.22)]">
-                      {items.map((item) => (
-                        <MenuRow
-                          key={item.label}
-                          item={item}
-                          onNavigate={() => setMenu(null)}
-                        />
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
+                      <ul className="min-w-64 rounded-sm border border-line bg-surface p-4 shadow-[0_10px_28px_-14px_rgb(0_0_0/0.22)]">
+                        {items.map((item) => (
+                          <MenuRow
+                            key={item.label}
+                            item={item}
+                            onNavigate={() => setMenu(null)}
+                          />
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
 
-        {/* One button, and it points at the login rather than at
+          {/* One button, and it points at the login rather than at
             contact. Existing customers are the people who need the bar
             to do something for them on every page; a prospect already
             has the hero's action and the closing panel. Sending
             "Access your apps" anywhere but the sign-in page would make
             the label a lie. */}
-        <div className="hidden items-center md:flex">
-          {/* Outlined, not filled. The hero already owns the one solid
+          <div className="hidden items-center md:flex">
+            {/* Outlined, not filled. The hero already owns the one solid
               indigo action above the fold; a second one in the bar put
               two primary buttons on screen at once and neither won.
               Border and text both go indigo on hover, which is the same
               answer the dropdown rows give. */}
+            <button
+              type="button"
+              onClick={() => setAppsOpen(true)}
+              className="group inline-flex items-center gap-1.5 rounded-md border border-line px-4 py-2 text-[0.9375rem] font-medium text-ink transition-colors hover:border-accent hover:text-accent"
+            >
+              Access your apps
+              <Arrow />
+            </button>
+          </div>
+
           <button
             type="button"
-            onClick={() => setAppsOpen(true)}
-            className="group inline-flex items-center gap-1.5 rounded-md border border-line px-4 py-2 text-[0.9375rem] font-medium text-ink transition-colors hover:border-accent hover:text-accent"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            aria-controls="mobile-nav"
+            className="-mr-2 grid h-10 w-10 place-items-center text-ink md:hidden"
           >
-            Access your apps
-            <Arrow />
+            <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              className="h-5 w-5"
+              aria-hidden="true"
+            >
+              {open ? (
+                <path d="M6 6l12 12M18 6L6 18" />
+              ) : (
+                <path d="M3.5 7h17M3.5 12h17M3.5 17h17" />
+              )}
+            </svg>
           </button>
-        </div>
+        </nav>
 
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          aria-controls="mobile-nav"
-          className="-mr-2 grid h-10 w-10 place-items-center text-ink md:hidden"
-        >
-          <span className="sr-only">{open ? "Close menu" : "Open menu"}</span>
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            className="h-5 w-5"
-            aria-hidden="true"
+        {open && (
+          <div
+            id="mobile-nav"
+            className="border-t border-line bg-paper md:hidden"
           >
-            {open ? (
-              <path d="M6 6l12 12M18 6L6 18" />
-            ) : (
-              <path d="M3.5 7h17M3.5 12h17M3.5 17h17" />
-            )}
-          </svg>
-        </button>
-      </nav>
-
-      {open && (
-        <div
-          id="mobile-nav"
-          className="border-t border-line bg-paper md:hidden"
-        >
-          <div className="mx-auto max-w-6xl px-5 py-5 sm:px-8">
-            {/* No dropdowns on the sheet — there is room to lay both
+            <div className="mx-auto max-w-6xl px-5 py-5 sm:px-8">
+              {/* No dropdowns on the sheet — there is room to lay both
                 groups out flat, and a menu inside a menu is a tap
                 nobody needs to make. */}
-            {MENUS.map(({ label, items }) => (
-              <div key={label} className="pb-4">
-                <p className="pb-1 text-[0.6875rem] font-medium tracking-[0.14em] text-muted uppercase">
-                  {label}
-                </p>
-                <ul>
-                  {items.map((item) => (
-                    <MenuRow
-                      key={item.label}
-                      item={item}
-                      onNavigate={() => setOpen(false)}
-                    />
-                  ))}
-                </ul>
-              </div>
-            ))}
+              {MENUS.map(({ label, items }) => (
+                <div key={label} className="pb-4">
+                  <p className="pb-1 text-[0.6875rem] font-medium tracking-[0.14em] text-muted uppercase">
+                    {label}
+                  </p>
+                  <ul>
+                    {items.map((item) => (
+                      <MenuRow
+                        key={item.label}
+                        item={item}
+                        onNavigate={() => setOpen(false)}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              ))}
 
-            <div className="mt-1 border-t border-line-soft pt-5">
-              {/* Closes the drawer on the way: leaving it open behind a
+              <div className="mt-1 border-t border-line-soft pt-5">
+                {/* Closes the drawer on the way: leaving it open behind a
                   modal stacks two overlays, and the drawer would still
                   be sitting there when the dialog is dismissed. */}
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  setAppsOpen(true);
-                }}
-                className="group inline-flex w-full items-center justify-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent hover:text-accent"
-              >
-                Access your apps
-                <Arrow />
-              </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setAppsOpen(true);
+                  }}
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-md border border-line px-4 py-2.5 text-sm font-medium text-ink transition-colors hover:border-accent hover:text-accent"
+                >
+                  Access your apps
+                  <Arrow />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </header>
+        )}
+      </header>
+    </>
+  );
+}
+
+/**
+ * The strip above the bar: Instant is open to sign up for, and this is
+ * the one line on every page that says so.
+ *
+ * NOT sticky, and above the sticky header rather than inside it. The
+ * header's `top-0` and the `scroll-mt` offsets on every section are
+ * measured against its 5rem height; making the strip part of that stack
+ * would push all of them out by its own height. Here it simply scrolls
+ * away, and nothing else needs touching — the same property Instant's
+ * announcement bar is careful to keep.
+ *
+ * Black, through the `--panel` tokens the closing CTA and the footer
+ * already use for this site's inverted surfaces, rather than a literal
+ * black: those carry their own foreground and hairline, so the strip
+ * matches the other two dark bands instead of being a third definition
+ * of dark. Near-white on it measures 16.9:1.
+ *
+ * The whole strip is the link: a 40px bar with a 90-character sentence
+ * in it is an awkward target otherwise.
+ */
+function TopLine() {
+  return (
+    <a
+      href={LINKS.instantSignup}
+      className="group block bg-panel text-panel-fg transition-opacity hover:opacity-95"
+    >
+      <p className="mx-auto flex max-w-6xl items-center justify-center gap-2 px-5 py-2.5 text-center text-[0.8125rem] font-medium sm:px-8">
+        {/* The sentence shortens rather than wrapping: at 390px the full
+            line runs to three lines and the strip becomes a block. */}
+        <span className="hidden sm:inline">
+          Instant is live on the official WhatsApp Business API —
+        </span>
+        <span className="sm:hidden">Instant is live —</span>
+        <span className="underline decoration-panel-fg/40 underline-offset-4 transition-colors group-hover:decoration-panel-fg">
+          create your account
+        </span>
+        <Arrow />
+      </p>
+    </a>
   );
 }

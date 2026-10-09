@@ -185,6 +185,19 @@ export const PRODUCTS: Product[] = [
     // (146) and the parent indigo (267) that no two products read as one.
     hue: "oklch(0.54 0.12 210)",
     repo: "https://github.com/sanjitsingha/vichento",
+    // The product's own wordmark, supplied as a 128 × 29 webp — small
+    // for a lockup. It is sharp in the homepage hero, which draws it at
+    // 24px tall, and soft on a 2× screen anywhere it is drawn larger:
+    // /products uses 40px and the homepage card 36px, which is 80px of
+    // real pixels from an asset that has 29. Replace the file with a
+    // wider export (around 512 × 116) and those two get crisp; nothing
+    // else needs to change, since width and height here are only a
+    // ratio.
+    logo: {
+      src: "/images/products/vichento-logo-black.webp",
+      width: 128,
+      height: 29,
+    },
     isApp: true,
   },
 ];

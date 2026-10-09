@@ -1,151 +1,149 @@
+import Image from "next/image";
+
 /**
- * What clients say, on the homepage.
+ * The client showcase, carried over from Instant's own homepage — the
+ * same section, the same words, the same shape, in this site's colours.
  *
- * Currently holding PLACEHOLDER quotes — see `PLACEHOLDER` below. They
- * exist so the section can be designed and reviewed against realistic
- * content, and they are gated out of the production build.
+ * WHAT IT DELIBERATELY IS NOT: a quote. The line beside the photograph
+ * is OUR description of what the client does with Instant, not their
+ * words, and it carries no quotation marks and no named speaker for
+ * that reason. Putting invented words next to a real business's logo
+ * publishes an endorsement they never gave — a fake review, which
+ * India's consumer-protection rules and the FTC both treat as an
+ * actionable claim rather than as a to-do. The quote cards that used to
+ * stand here held invented names and were gated out of production for
+ * the same reason; this replaces them with something that can actually
+ * be published.
+ *
+ * When Rahul Catering Services sends words of their own, in writing,
+ * this becomes a quote: wrap the line in a <blockquote>, attribute it,
+ * and nothing else changes. Instant's copy of this section carries the
+ * same note.
  *
  * Deliberately NO `Review` or `AggregateRating` structured data, even
- * once the quotes are real. Google does not allow an organisation to
- * mark up reviews of itself on its own site; doing it is ineligible for
- * rich results at best and a manual action at worst. The quotes are here
- * to be read by people.
+ * then. Google does not allow an organisation to mark up reviews of
+ * itself on its own site; doing it is ineligible for rich results at
+ * best and a manual action at worst.
  */
-export type Testimonial = {
-  /** Their words, not ours. No quotation marks — the design adds them. */
-  quote: string;
-  name: string;
-  /** Job title, and the business. Both matter: a quote from "Rahul" is
-   *  worth less than one from "Rahul, who runs a catering company". */
-  role: string;
-  company: string;
-};
 
-/**
- * INVENTED COPY. Every quote, name and company below is made up — there
- * is no Sunrise Catering, no Meridian Interiors, no Kalpana Textiles,
- * and nobody said any of this.
- *
- * Lengths vary on purpose: three quotes of different sizes are what
- * actually tests whether the cards still bottom out on one line.
- *
- * Replace the whole array when real quotes arrive. Nothing else needs to
- * change.
- */
-const PLACEHOLDER: Testimonial[] = [
-  {
-    quote:
-      "We were answering the same five questions on WhatsApp about sixty times a day. Those are handled now, and the conversations that do reach a person are the ones actually worth a person.",
-    name: "Ananya Rao",
-    role: "Operations Lead",
-    company: "Sunrise Catering",
+/** Our words about their use of the product, not a quote from them. */
+const SHOWCASE_COPY =
+  "Catering enquiries, menus and bookings — all on one WhatsApp number, answered by whoever on the team is free.";
+
+/** The client, and the two assets they appear through. Both files are
+ *  copies of Instant's, under public/images/showcase. */
+const CLIENT = {
+  name: "Rahul Catering Services",
+  photo: {
+    src: "/images/showcase/rahul-catering-services.png",
+    width: 1086,
+    height: 1448,
   },
-  {
-    quote:
-      "Setup took an afternoon. What I had not expected was being able to read back, a month later, exactly what customers kept asking for.",
-    name: "Vikram Mehta",
-    role: "Founder",
-    company: "Meridian Interiors",
+  logo: {
+    src: "/images/showcase/rahul-catering-logo.png",
+    width: 1714,
+    height: 1247,
   },
-  {
-    quote:
-      "I had tried two chatbots before this and switched both off inside a week, because they answered confidently and wrongly. This one says it does not know, and hands the chat over. That is the whole difference.",
-    name: "Priya Nair",
-    role: "Customer Experience",
-    company: "Kalpana Textiles",
-  },
-];
+} as const;
 
-/**
- * Placeholders render locally and on preview deploys; the production
- * build gets an empty list, so the section disappears from nebkern.com.
- *
- * This is not squeamishness about unfinished copy. A made-up quote with
- * a named person attached, served from the live domain, is a fake
- * review — something India's consumer-protection rules and the FTC both
- * treat as an actionable claim rather than as a to-do. The gate means
- * the design can be worked on without that ever being one push away.
- *
- * `VERCEL_ENV` is "production" only for the live domain; preview deploys
- * report "preview", and it is undefined on this machine. The page is
- * statically prerendered, so this is decided once, at build time.
- *
- * To put the placeholders on the live site anyway, make this
- * `= PLACEHOLDER`.
- */
-export const FEEDBACK: Testimonial[] =
-  process.env.VERCEL_ENV === "production" ? [] : PLACEHOLDER;
-
-/** The homepage asks this before rendering, so an empty list costs no
- *  markup at all — not even an empty section wrapper. */
-export const hasFeedback = FEEDBACK.length > 0;
-
-function Quote({ testimonial }: { testimonial: Testimonial }) {
+/** Inert until there is a second client to move between — `disabled`
+ *  rather than a control that answers a press by doing nothing. Instant
+ *  carries the same pair, in the same state, for the same reason. */
+function Arrow({ back = false }: { back?: boolean }) {
   return (
-    <figure className="flex h-full flex-col rounded-lg border border-line bg-surface p-7 sm:p-8">
-      {/* A drawn quote mark rather than a typed one: at this size a real
-          “ sits on the text baseline and drifts with the font, where
-          this stays put. */}
-      <svg
-        viewBox="0 0 32 24"
-        fill="currentColor"
-        aria-hidden="true"
-        className="h-5 w-7 shrink-0 text-accent/30"
-      >
-        <path d="M0 24V13.5C0 6 4.5 1 12 0v4.5C7.8 5.5 5.6 8 5.4 12H12v12H0Zm20 0V13.5C20 6 24.5 1 32 0v4.5c-4.2 1-6.4 3.5-6.6 7.5H32v12H20Z" />
-      </svg>
-
-      <blockquote className="mt-5 flex-1 text-[1.0625rem] leading-relaxed text-ink-soft text-pretty">
-        {testimonial.quote}
-      </blockquote>
-
-      <figcaption className="mt-6 border-t border-line-soft pt-5">
-        <span className="block text-[0.9375rem] font-semibold tracking-[-0.015em] text-ink">
-          {testimonial.name}
-        </span>
-        <span className="mt-0.5 block text-[0.875rem] text-muted">
-          {testimonial.role}, {testimonial.company}
-        </span>
-      </figcaption>
-    </figure>
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.7"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-4 w-4"
+      aria-hidden="true"
+    >
+      <path d={back ? "M13 8H3M7 4L3 8l4 4" : "M3 8h10M9 4l4 4-4 4"} />
+    </svg>
   );
 }
 
 export function Feedback() {
-  if (!hasFeedback) return null;
-
   return (
     <section
       id="feedback"
       aria-labelledby="feedback-heading"
       className="scroll-mt-20 bg-surface-2"
     >
-      <div className="mx-auto max-w-6xl px-5 py-20 sm:px-8 sm:py-24">
-        {/* The centred heading over a short accent rule — the device the
-            values panel and the FAQ both use for a section that speaks
-            to the reader rather than describing the company. */}
-        <div className="text-center">
-          <h2
-            id="feedback-heading"
-            className="display mx-auto max-w-2xl text-[clamp(1.875rem,3.6vw,2.75rem)] font-medium text-ink text-balance"
-          >
-            What the people using it say
-          </h2>
-          <span
-            className="mx-auto mt-7 block h-[3px] w-12 bg-accent"
-            aria-hidden="true"
-          />
+      <div className="mx-auto max-w-7xl px-5 py-20 sm:px-8 sm:py-24">
+        {/* Title left, controls right — the header shape Instant uses
+            here and the products carousel uses above. */}
+        <div className="flex flex-col gap-8 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-3xl">
+            <h2
+              id="feedback-heading"
+              className="display text-[clamp(1.875rem,3.6vw,2.75rem)] font-medium text-ink text-pretty"
+            >
+              Hear from the power users of Instant
+            </h2>
+            <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted text-pretty">
+              Teams running their bookings, enquiries and follow-ups through one
+              shared WhatsApp number — and what changed once they did.
+            </p>
+          </div>
+
+          <div className="flex shrink-0 gap-3">
+            {[
+              { label: "Previous client", back: true },
+              { label: "Next client", back: false },
+            ].map(({ label, back }) => (
+              <button
+                key={label}
+                type="button"
+                aria-label={label}
+                disabled
+                className="grid size-11 place-items-center rounded-full border border-line text-ink transition-colors hover:border-ink/25 disabled:pointer-events-none disabled:opacity-30"
+              >
+                <Arrow back={back} />
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* `items-stretch` through the grid and `h-full` on the card, so
-            three quotes of different lengths still end on one line. */}
-        <ul className="mt-12 grid items-stretch gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {FEEDBACK.map((testimonial) => (
-            <li key={`${testimonial.name}-${testimonial.company}`}>
-              <Quote testimonial={testimonial} />
-            </li>
-          ))}
-        </ul>
+        {/* The tile. `relative` so the logo can hang in the bottom-right
+            corner. White on the section's grey, so it reads as a raised
+            surface — the same move Instant makes against its cream. */}
+        <div className="relative mt-12 overflow-hidden rounded-[25px] bg-surface p-2 shadow-[4px_4px_0_2px_rgb(0_0_0/0.05)] sm:mt-14 sm:flex sm:h-[500px] sm:items-center sm:gap-10">
+          {/* Greyscale so it reads as a backdrop for the line rather than
+              competing with it — and so the logo is the only colour in
+              the tile. Sized by height on the row so the portrait stays
+              whole instead of being cropped; on a phone the tile stacks
+              and the photograph takes a fixed band at the top. */}
+          <Image
+            src={CLIENT.photo.src}
+            alt={`${CLIENT.name} on WhatsApp`}
+            width={CLIENT.photo.width}
+            height={CLIENT.photo.height}
+            sizes="(min-width: 640px) 320px, 100vw"
+            className="h-56 w-full rounded-[16px] object-cover object-top grayscale sm:h-full sm:w-auto sm:object-contain"
+          />
+
+          {/* The line sits in the middle of whatever width is left, not
+              of the tile, so it stays centred as the photograph takes its
+              share. The bottom padding keeps it clear of the logo. */}
+          <div className="flex flex-1 items-center justify-center px-5 pt-8 pb-24 sm:px-6 sm:py-16">
+            <p className="max-w-[62ch] text-left text-[clamp(1.25rem,2.4vw,1.875rem)] leading-[1.3] font-medium text-ink text-balance">
+              {SHOWCASE_COPY}
+            </p>
+          </div>
+
+          <Image
+            src={CLIENT.logo.src}
+            alt={CLIENT.name}
+            width={CLIENT.logo.width}
+            height={CLIENT.logo.height}
+            sizes="180px"
+            className="absolute right-6 bottom-5 h-12 w-auto object-contain sm:right-8 sm:bottom-6 sm:h-16"
+          />
+        </div>
       </div>
     </section>
   );

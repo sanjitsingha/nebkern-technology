@@ -1,6 +1,6 @@
-import type { CSSProperties } from "react";
+import Link from "next/link";
+import type { CSSProperties, ReactNode } from "react";
 
-import { ButtonLink } from "@/components/site/page";
 import { MAYA, PLAYGROUND_PATH } from "@/lib/maya";
 import { LINKS } from "@/lib/site";
 
@@ -12,11 +12,16 @@ import { LINKS } from "@/lib/site";
  * her out — but she is the product most worth seeing work, and the
  * playground is where a visitor can.
  *
- * In her own colour, per the rule the whole palette is built on: the
- * parent brand stays neutral and indigo, and each product's hue carries
- * the variety inside its own space. The colour is a wash and a few
- * marks, never body text — violet at small sizes does not clear AA on
- * this background, so words stay in ink.
+ * The band is #007C07, a solid green, so everything on it is white or
+ * near-white: white reads 5.4:1 there, white/90 reads 4.7:1, and
+ * anything lighter than /90 drops under the 4.5:1 AA floor — which is
+ * why no text out here is dimmer than that.
+ *
+ * Maya’s own violet survives only INSIDE the white chat card, where it
+ * still has a light surface to sit on. On the green it would be a muddy
+ * smudge, so the marks around it — the kicker dot, the ticks — are
+ * white, and so is the primary button, with the green as its text. The
+ * site’s indigo never appears on this band: it reads 1.3:1 against it.
  *
  * Claims come from the catalogue's capability lines and Instant's own
  * Ask Maya page; the example exchange is labelled as one, and every
@@ -32,8 +37,7 @@ const FACTS = [
 function Check() {
   return (
     <span
-      className="mt-1 grid size-4.5 shrink-0 place-items-center rounded-full"
-      style={{ background: "color-mix(in oklab, var(--hue) 16%, transparent)" }}
+      className="mt-1 grid size-4.5 shrink-0 place-items-center rounded-full bg-white/20"
       aria-hidden="true"
     >
       <svg
@@ -43,8 +47,7 @@ function Check() {
         strokeWidth="2.2"
         strokeLinecap="round"
         strokeLinejoin="round"
-        className="h-2.5 w-2.5"
-        style={{ color: "var(--hue)" }}
+        className="h-2.5 w-2.5 text-white"
       >
         <path d="M3.5 8.5l3 3 6-7" />
       </svg>
@@ -88,9 +91,9 @@ function ExampleChat() {
               Maya
             </p>
             <p className="mt-1 text-[0.9375rem] leading-relaxed text-ink">
-              Sorry, dupattas can&rsquo;t be returned. Kurtas, shirts and
-              pants can, within 7 days of delivery, as long as they&rsquo;re
-              unworn with the tags on.
+              Sorry, dupattas can&rsquo;t be returned. Kurtas, shirts and pants
+              can, within 7 days of delivery, as long as they&rsquo;re unworn
+              with the tags on.
             </p>
             <p className="mt-2 text-[0.75rem] text-muted">
               From: Returns and exchanges
@@ -111,10 +114,61 @@ function ExampleChat() {
         </div>
       </div>
 
-      <figcaption className="mt-3 text-[0.8125rem] leading-relaxed text-muted">
+      <figcaption className="mt-3 text-[0.8125rem] leading-relaxed text-white/90">
         An example from the playground&rsquo;s sample store — a made-up shop.
       </figcaption>
     </figure>
+  );
+}
+
+/**
+ * This band's own buttons.
+ *
+ * `ButtonLink` has two variants and both assume a light surface: the
+ * primary is the site's indigo, which reads 1.3:1 on this green, and the
+ * secondary is an ink outline on white. So the pair here is white filled
+ * with the green as its text, and a white outline at /70 — the lightest
+ * alpha that still clears the 3:1 a control's own edge needs.
+ */
+function BandLink({
+  href,
+  children,
+  filled = false,
+}: {
+  href: string;
+  children: ReactNode;
+  filled?: boolean;
+}) {
+  const tone = filled
+    ? "bg-white text-[#007C07] hover:bg-white/90"
+    : "border border-white/70 text-white hover:bg-white/10";
+  const className = `inline-flex items-center justify-center gap-2 rounded-md px-5 py-3 text-[0.9375rem] font-medium transition-colors ${tone}`;
+  const body = (
+    <>
+      {children}
+      <svg
+        viewBox="0 0 16 16"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="h-3.5 w-3.5"
+        aria-hidden="true"
+      >
+        <path d="M3 8h10M9 4l4 4-4 4" />
+      </svg>
+    </>
+  );
+
+  return href.startsWith("/") || href.startsWith("#") ? (
+    <Link href={href} className={className}>
+      {body}
+    </Link>
+  ) : (
+    <a href={href} className={className}>
+      {body}
+    </a>
   );
 }
 
@@ -126,43 +180,39 @@ export function MayaSpotlight() {
       className="scroll-mt-20"
       style={
         {
+          // Still set, and still used — but only by the chat card,
+          // which is white inside and can carry her colour properly.
           "--hue": MAYA.hue,
-          // A wash of her colour over the page's own paper — enough to
-          // mark the band as hers, far too little to tint the text.
-          background: "color-mix(in oklab, var(--hue) 5%, var(--paper))",
+          background: "#007C07",
         } as CSSProperties
       }
     >
       <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-8 sm:py-24 lg:grid-cols-2 lg:items-center lg:gap-16">
         <div>
-          <p className="inline-flex items-center gap-2.5 text-[0.75rem] font-semibold tracking-[0.14em] text-ink-soft uppercase">
-            <span
-              className="size-1.5 shrink-0"
-              style={{ background: "var(--hue)" }}
-              aria-hidden="true"
-            />
+          <p className="inline-flex items-center gap-2.5 text-[0.75rem] font-semibold tracking-[0.14em] text-white uppercase">
+            <span className="size-1.5 shrink-0 bg-white" aria-hidden="true" />
             Ask Maya · {MAYA.statusLabel}
           </p>
 
           <h2
             id="maya-heading"
-            className="display mt-5 text-[clamp(1.875rem,3.6vw,2.75rem)] font-medium text-ink text-balance"
+            className="display mt-5 text-[clamp(1.875rem,3.6vw,2.75rem)] font-medium text-white text-balance"
           >
             An AI agent that answers from what your business actually knows.
           </h2>
 
-          <p className="mt-5 text-lg leading-relaxed text-ink-soft text-pretty">
-            Maya is the AI agent inside Instant. Give her your catalogue,
-            prices and policies, and she replies to customers on WhatsApp.
-            When the answer isn&rsquo;t there, she hands the chat to a person
-            instead of guessing.
+          <p className="mt-5 text-lg leading-relaxed text-white/90 text-pretty">
+            Maya is the AI agent inside Instant. Give her your catalogue, prices
+            and policies, and she replies to customers on WhatsApp. When the
+            answer isn&rsquo;t there, she hands the chat to a person instead of
+            guessing.
           </p>
 
           <ul className="mt-7 space-y-3">
             {FACTS.map((fact) => (
               <li
                 key={fact}
-                className="flex gap-3 text-[0.9375rem] leading-relaxed text-ink-soft"
+                className="flex gap-3 text-[0.9375rem] leading-relaxed text-white/90"
               >
                 <Check />
                 {fact}
@@ -171,10 +221,10 @@ export function MayaSpotlight() {
           </ul>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-            <ButtonLink href={PLAYGROUND_PATH}>Try it in the playground</ButtonLink>
-            <ButtonLink href={LINKS.askMaya} variant="secondary">
-              Ask Maya on Instant
-            </ButtonLink>
+            <BandLink href={PLAYGROUND_PATH} filled>
+              Try it in the playground
+            </BandLink>
+            <BandLink href={LINKS.askMaya}>Ask Maya on Instant</BandLink>
           </div>
         </div>
 

@@ -1,13 +1,12 @@
 import { Nav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
-import { ProductsBand } from "@/components/site/products-band";
-import { BrandBand } from "@/components/site/brand-band";
+import { ProductSplit } from "@/components/site/product-split";
 import { MayaSpotlight } from "@/components/site/maya-spotlight";
 import { Slider } from "@/components/site/slider";
 import { Banner } from "@/components/site/banner";
 import { Values } from "@/components/site/values";
 import { Statement } from "@/components/site/statement";
-import { Feedback, hasFeedback } from "@/components/site/feedback";
+import { Feedback } from "@/components/site/feedback";
 import { HomeFaq } from "@/components/site/home-faq";
 import { Cta } from "@/components/site/cta";
 import { Footer } from "@/components/site/footer";
@@ -37,23 +36,24 @@ export default function Home() {
             just delay the first thing anyone reads. */}
         <Hero />
 
-        {/* The products, on the gradient band — and the hero's one
-            button lands here. Not wrapped in `Reveal`, for the hero's
-            reason: it sits at the top of the page, so there is nothing
-            for it to scroll into. */}
-        <ProductsBand />
+        {/* The gradient products band and the credentials strip under it
+            both used to sit here. They are off the homepage, NOT deleted
+            — components/site/products-band.tsx (with its carousel) and
+            components/site/brand-band.tsx are untouched, and putting
+            either back is one import and one line. The catalogue they
+            showed still has a page of its own at /products, which is
+            where the hero's button now goes. */}
 
-        {/* Straight after the products: having just said what we sell,
-            this is the evidence behind the claims around it. A dark
-            strip, so it reads as a rule under the gradient rather than
-            as another section competing with it. */}
-        <Reveal>
-          <BrandBand />
-        </Reveal>
+        {/* The two-panel card. Not wrapped in `Reveal`: part of it is on
+            screen at load, under the hero, and animating something
+            already visible reads as a glitch. It hangs into the section
+            below it, which is why it comes before that section rather
+            than inside it. */}
+        <ProductSplit />
 
-        {/* Straight after the apps slab, which leaves Maya out because
-            she is not an app of her own — this is where the homepage
-            makes up for it, and points at the playground. */}
+        {/* Maya is not an app of her own, so she never had a card in the
+            band that stood above this — which is why the homepage gives
+            her a section, and points at the playground. */}
         <Reveal>
           <MayaSpotlight />
         </Reveal>
@@ -70,18 +70,17 @@ export default function Home() {
           <Statement />
         </Reveal>
 
-        {/* Client feedback, between the conviction above and the
-            questions below: having made the argument ourselves, this is
-            somebody else making it.
+        {/* A client, between the conviction above and the questions
+            below: having made the argument ourselves, this is a business
+            actually running on it.
 
-            Guarded rather than self-hiding, so an empty list renders no
-            wrapper at all — not even the `Reveal` div, which would
-            otherwise sit in the page as an empty animated box. */}
-        {hasFeedback && (
-          <Reveal>
-            <Feedback />
-          </Reveal>
-        )}
+            No longer guarded. The section used to hold invented quotes
+            and was gated out of production so they could never reach the
+            live domain; it now carries Instant's showcase, whose words
+            are ours and whose client is real. */}
+        <Reveal>
+          <Feedback />
+        </Reveal>
 
         {/* Answers before the ask: the questions come last, then the
             closing panel. On paper rather than grey, so it separates
