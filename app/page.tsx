@@ -1,11 +1,13 @@
 import { Nav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
 import { ProductsBand } from "@/components/site/products-band";
+import { BrandBand } from "@/components/site/brand-band";
 import { MayaSpotlight } from "@/components/site/maya-spotlight";
 import { Slider } from "@/components/site/slider";
 import { Banner } from "@/components/site/banner";
 import { Values } from "@/components/site/values";
 import { Statement } from "@/components/site/statement";
+import { Feedback, hasFeedback } from "@/components/site/feedback";
 import { HomeFaq } from "@/components/site/home-faq";
 import { Cta } from "@/components/site/cta";
 import { Footer } from "@/components/site/footer";
@@ -40,6 +42,15 @@ export default function Home() {
             reason: it sits at the top of the page, so there is nothing
             for it to scroll into. */}
         <ProductsBand />
+
+        {/* Straight after the products: having just said what we sell,
+            this is the evidence behind the claims around it. A dark
+            strip, so it reads as a rule under the gradient rather than
+            as another section competing with it. */}
+        <Reveal>
+          <BrandBand />
+        </Reveal>
+
         {/* Straight after the apps slab, which leaves Maya out because
             she is not an app of her own — this is where the homepage
             makes up for it, and points at the playground. */}
@@ -58,6 +69,20 @@ export default function Home() {
         <Reveal>
           <Statement />
         </Reveal>
+
+        {/* Client feedback, between the conviction above and the
+            questions below: having made the argument ourselves, this is
+            somebody else making it.
+
+            Guarded rather than self-hiding, so an empty list renders no
+            wrapper at all — not even the `Reveal` div, which would
+            otherwise sit in the page as an empty animated box. */}
+        {hasFeedback && (
+          <Reveal>
+            <Feedback />
+          </Reveal>
+        )}
+
         {/* Answers before the ask: the questions come last, then the
             closing panel. On paper rather than grey, so it separates
             from the statement band directly above it. */}

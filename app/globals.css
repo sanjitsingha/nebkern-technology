@@ -58,6 +58,22 @@
       background-position: var(--bg-size, 300%) 0;
     }
   }
+
+  /* The brand band's marquee. The track holds the logo list TWICE, so
+     translating it exactly half its own width lands the second copy
+     where the first began and the loop has no seam. That is why the
+     distance is -50% and not a pixel figure: it stays correct whatever
+     the logos measure.
+
+     Slow on purpose. A credentials strip is read in passing, and
+     anything quick enough to notice is quick enough to annoy. */
+  --animate-marquee: marquee 45s linear infinite;
+
+  @keyframes marquee {
+    to {
+      transform: translateX(-50%);
+    }
+  }
 }
 
 :root {
