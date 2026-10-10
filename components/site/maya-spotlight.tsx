@@ -187,7 +187,18 @@ export function MayaSpotlight() {
         } as CSSProperties
       }
     >
-      <div className="mx-auto grid max-w-6xl gap-12 px-5 py-20 sm:px-8 sm:py-24 lg:grid-cols-2 lg:items-center lg:gap-16">
+      {/* Asymmetric, and not for taste: the products card above hangs
+          64px past its own section into this band (80px from `sm`), so
+          the first 64px of this padding sits behind that card and only
+          16px of it is green anyone can see. Matching 80px at the bottom
+          therefore read as bottom-heavy rather than as balanced.
+
+          Which is also why the top figure does not move. Cutting it is
+          what would pull this band up, and at 16px of clearance there is
+          nothing to cut — the eyebrow would slide under the card. To
+          lift it further, reduce the `-mb-16 sm:-mb-20` on the card in
+          product-split.tsx and take the same amount off here. */}
+      <div className="mx-auto grid max-w-6xl gap-12 px-5 pt-20 pb-10 sm:px-8 sm:pt-24 sm:pb-12 lg:grid-cols-2 lg:items-center lg:gap-16">
         <div>
           <p className="inline-flex items-center gap-2.5 text-[0.75rem] font-semibold tracking-[0.14em] text-white uppercase">
             <span className="size-1.5 shrink-0 bg-white" aria-hidden="true" />

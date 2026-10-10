@@ -1,7 +1,7 @@
 import { Nav } from "@/components/site/nav";
 import { Hero } from "@/components/site/hero";
 import { ProductSplit } from "@/components/site/product-split";
-import { MayaSpotlight } from "@/components/site/maya-spotlight";
+import { Sectors } from "@/components/site/sectors";
 import { Slider } from "@/components/site/slider";
 import { Banner } from "@/components/site/banner";
 import { Values } from "@/components/site/values";
@@ -51,11 +51,13 @@ export default function Home() {
             than inside it. */}
         <ProductSplit />
 
-        {/* Maya is not an app of her own, so she never had a card in the
-            band that stood above this — which is why the homepage gives
-            her a section, and points at the playground. */}
+        {/* Who the products are for, straight after what they are.
+            This replaced the Ask Maya spotlight, which is off the
+            homepage but NOT deleted — components/site/maya-spotlight.tsx
+            is untouched, and the nav and footer both still link the
+            playground, so nothing is stranded by its absence. */}
         <Reveal>
-          <MayaSpotlight />
+          <Sectors />
         </Reveal>
         <Reveal>
           <Banner />

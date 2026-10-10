@@ -15,8 +15,8 @@ import { PRODUCTS } from "@/lib/products";
  * reordered. The overlap costs the section below 5rem of its top
  * padding, which `MayaSpotlight` has (py-20 / sm:py-24) with room left.
  *
- * Copy rules, same as everywhere else on this site: the headline and the
- * line under it come from the catalogue, so nothing here claims anything
+ * Copy rules, same as everywhere else on this site: the line under each
+ * lockup comes from the catalogue, so nothing here claims anything
  * lib/products.ts does not already say. Vichento has not shipped, and
  * its panel says so in words rather than relying on a badge.
  */
@@ -25,7 +25,6 @@ type Panel = {
   slug: string;
   /** The small pill in the corner. What the thing IS, in two words. */
   label: string;
-  headline: string;
   blurb: string;
   cta: string;
   /** Where the button goes. The product's own site where it has one,
@@ -38,7 +37,6 @@ const PANELS: Panel[] = [
   {
     slug: "instant",
     label: "Shared inbox",
-    headline: "Sales and support on one WhatsApp number",
     blurb:
       "A shared team inbox on the official WhatsApp Business API, with contacts, pipelines and campaigns attached.",
     cta: "Visit Instant",
@@ -47,7 +45,6 @@ const PANELS: Panel[] = [
   {
     slug: "vichento",
     label: "Read & write",
-    headline: "A place to read and write",
     blurb:
       "In development: a reading and writing platform for long-form pieces — somewhere to publish human stories and ideas, and somewhere to read them.",
     cta: "What it is",
@@ -82,20 +79,22 @@ function PanelCard({ panel }: { panel: Panel }) {
 
   return (
     <div
-      className="relative flex flex-col items-center rounded-lg px-6 pt-14 pb-10 text-center sm:px-8 sm:pt-16 sm:pb-12"
-      style={
-        {
-          "--hue": product.hue,
-          // Strongest at the top left, gone by the bottom right, so the
-          // two panels read as tinted glass rather than as two flat
-          // colour fields with a white line between them.
-          background:
-            "linear-gradient(135deg, color-mix(in oklab, var(--hue) 18%, var(--surface)), var(--surface) 80%)",
-        } as CSSProperties
-      }
+      // White, with no background of its own — the wrapper's surface
+      // shows through. The tinted gradient that used to be here is gone;
+      // `--hue` stays set because the label chip and the link below
+      // still carry the product's colour, which is now the only place
+      // either product is distinguished by anything but its words.
+      //
+      // Shorter: the top figure is the one that cannot come down much,
+      // because the label sits inside it absolutely and the lockup has
+      // to clear it. Moving the chip to `top-4` bought the 8px that let
+      // the padding go from 56/40 to 48/32, and the gaps between lockup,
+      // headline, blurb and link each gave up a step as well.
+      className="relative flex flex-col items-center rounded-lg px-6 pt-12 pb-8 text-center sm:px-8 sm:pt-14 sm:pb-10"
+      style={{ "--hue": product.hue } as CSSProperties}
     >
       <span
-        className="absolute top-5 left-5 rounded-sm px-2.5 py-1 text-[0.6875rem] font-semibold tracking-[0.12em] text-ink-soft uppercase"
+        className="absolute top-4 left-4 rounded-sm px-2.5 py-1 text-[0.6875rem] font-semibold tracking-[0.12em] text-ink-soft uppercase"
         style={{
           background: "color-mix(in oklab, var(--hue) 16%, var(--surface))",
         }}
@@ -120,11 +119,12 @@ function PanelCard({ panel }: { panel: Panel }) {
         </span>
       )}
 
-      <h2 className="display mt-6 max-w-sm text-[clamp(1.25rem,2.1vw,1.625rem)] font-medium text-ink text-balance">
-        {panel.headline}
-      </h2>
-
-      <p className="mt-3 max-w-md text-sm leading-relaxed text-muted text-pretty">
+      {/* The headline that sat here is gone, so the blurb follows the
+          lockup directly and takes the gap the headline used to open.
+          Nothing else in the panel was a heading, which is why the
+          section carries its own `aria-label` rather than being named by
+          one. */}
+      <p className="mt-5 max-w-md text-sm leading-relaxed text-muted text-pretty">
         {panel.blurb}
       </p>
 
@@ -133,7 +133,7 @@ function PanelCard({ panel }: { panel: Panel }) {
           button in it would be the parent brand talking over it. */}
       <Anchor
         href={panel.href}
-        className="mt-7 inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[0.75rem] font-semibold tracking-[0.08em] uppercase transition-colors"
+        className="mt-6 inline-flex items-center gap-2 rounded-full border px-5 py-2.5 text-[0.75rem] font-semibold tracking-[0.08em] uppercase transition-colors"
         style={{
           color: "var(--hue)",
           borderColor: "color-mix(in oklab, var(--hue) 45%, transparent)",
@@ -150,17 +150,37 @@ export function ProductSplit() {
   return (
     <section aria-label="Products" className="bg-[#F8F9FB]">
       <div className="mx-auto max-w-6xl px-5 sm:px-8">
-        {/* `-mb-20` is the overlap, and `z-10` keeps the card above the
-            section it hangs into. The 2px padding is what draws the
-            division: a 4px white gutter (6px from `sm`) shows between
-            the two panels and around them, so there is no border to
-            keep in step with the tints.
+        {/* `-mb-20` is the overlap below, and `z-10` keeps the card above
+            both the section it hangs into and the hero it now reaches
+            back into.
 
-            12px outside, 8px on each panel — near enough to concentric
-            at a gutter this thin, and deliberately tighter than the
-            20px/12px it started at. */}
-        <div className="relative z-10 -mb-16 rounded-xl bg-surface p-1 shadow-[0_1px_2px_rgb(0_0_0/0.04),0_18px_40px_-18px_rgb(0_0_0/0.18)] sm:-mb-20 sm:p-1.5">
-          <div className="grid gap-1 sm:grid-cols-2 sm:gap-1.5">
+            The gutter is gone. A 2px padding used to leave a 4px white
+            channel between the two panels and around them, which worked
+            precisely because the panels were tinted — white between two
+            colours is a division, white between two whites is nothing.
+            So the division is a rule now: one white card with a border
+            and a line down the middle, which becomes a line ACROSS the
+            middle on a phone, where the two panels stack.
+
+            Hard shadow, matching the cards and the panel further down
+            the page: 4px across and down, zero blur, black at 10%. It
+            replaces a two-part soft one that was floating this card; at
+            this size that read as a dialog rather than as part of the
+            page.
+
+            `-mt-12` is the same trick upwards: this section has no top
+            padding, so the card began exactly where the hero ended, and
+            a negative top margin lifts it into the hero's own box. No
+            seam shows, because this section and the hero are both
+            #F8F9FB.
+
+            Capped by the hero's bottom padding, which is 48px and 64px
+            from `sm`. Lifting the card by more than that would put it
+            against the hero's button on a viewport short enough that the
+            copy, not the `min-h` calc, sets the hero's height — so these
+            two numbers stay just under those two. */}
+        <div className="relative z-10 -mt-8 -mb-16 overflow-hidden rounded-xl border border-line bg-surface shadow-[4px_4px_0_0_rgb(0_0_0/0.1)] sm:-mt-12 sm:-mb-20">
+          <div className="grid divide-y divide-line sm:grid-cols-2 sm:divide-x sm:divide-y-0">
             {PANELS.map((panel) => (
               <PanelCard key={panel.slug} panel={panel} />
             ))}
