@@ -25,9 +25,14 @@ const DESCRIPTION =
   "Work at Nebkern Technology, a software company in Siliguri, West Bengal, that builds, hosts and supports its own products. See how we work and how to apply.";
 
 export const metadata: Metadata = pageMetadata({
-  title: "Careers",
+  // "Careers" alone names the page without naming the job or the
+  // place, which are the two things a candidate searches by.
+  title: "Careers: software jobs in Siliguri",
   description: DESCRIPTION,
   path: "/careers",
+  // Pinned so the longer SEO title above does not become the share
+  // title as well — the other three pages already set theirs.
+  shareTitle: `Careers — ${SITE.name}`,
 });
 
 const CRUMBS = [

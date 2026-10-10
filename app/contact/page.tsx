@@ -12,7 +12,11 @@ const DESCRIPTION = `How to reach ${SITE.name} — a software company in ${SITE.
 // site name or locale, and a shallow merge meant those two were dropped
 // from this page's link previews.
 export const metadata: Metadata = pageMetadata({
-  title: "Contact",
+  // The city is in the title because "contact" on its own competes
+  // with every contact page on the web, where "Siliguri" is a search
+  // a local business actually makes. The share title below stays
+  // short: a link preview is seen by people who know who we are.
+  title: "Contact us in Siliguri, West Bengal",
   description: DESCRIPTION,
   path: "/contact",
   shareTitle: `Contact ${SITE.name}`,

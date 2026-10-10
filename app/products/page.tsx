@@ -31,7 +31,12 @@ export const metadata: Metadata = pageMetadata({
   // Not an enumeration any more: with four products the list either
   // dropped one or ran past the width a result shows. The description
   // below names all four.
-  title: "Products",
+  //
+  // And what the catalogue IS, rather than the word "Products" alone:
+  // a bare page name plus the company name is a title nobody can
+  // search for, because it holds no word a buyer would type. Named
+  // here are the three categories the four products fall into.
+  title: "Products: WhatsApp, AI and CRM software",
   description: DESCRIPTION,
   path: "/products",
   shareTitle: `Products — ${SITE.name}`,

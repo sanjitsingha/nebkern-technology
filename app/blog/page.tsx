@@ -19,7 +19,10 @@ export const revalidate = 300;
 //
 // The RSS link comes with `pageMetadata`, along with the canonical.
 export const metadata: Metadata = pageMetadata({
-  title: "Blog",
+  // Named subjects, not just "Blog" — same reasoning as /products.
+  // Both published posts are about the WhatsApp API, which is what
+  // anyone arriving from a search is actually looking for.
+  title: "Blog: WhatsApp, AI and business software",
   description: BLOG_DESCRIPTION,
   path: "/blog",
   shareTitle: `Blog — ${SITE.name}`,
